@@ -36,8 +36,14 @@ class PCSkill(Skill):
         ]
 
     async def execute(self, name: str, args: dict) -> dict:
-        # Power actions are dangerous → require confirmation per the protocol.
-        needs_confirm = name == "pc.power"
-        result = await self.dispatch(DEFAULT_DEVICE, name, args, needs_confirm)
+        # Power actions are dangerous → ask the user before sending anything.
+        if name == "pc.power":
+            mode = args.get("mode", "lock")
+            verb = {"lock": "lock", "sleep": "put to sleep", "shutdown": "shut down"}.get(mode, mode)
+            return self.needs_confirmation(
+                DEFAULT_DEVICE, name, args,
+                f"This will {verb} {DEFAULT_DEVICE}. Say 'confirm' to proceed.",
+            )
+        result = await self.dispatch(DEFAULT_DEVICE, name, args)
         log.info("→ PC command %s (%s) → %s", name, args, result["command_id"])
         return result

@@ -25,6 +25,10 @@ class SystemSkill(Skill):
             tool("system.time", "Tell the current date and time.", {}),
             tool("system.status", "Report which devices are online and RUDRA's health.", {}),
             tool("system.capabilities", "List what RUDRA can currently do.", {}),
+            tool("system.confirm",
+                 "Confirm and carry out a dangerous action the user just approved "
+                 "(e.g. after RUDRA asked 'say confirm to proceed').", {}),
+            tool("system.cancel", "Cancel a pending action awaiting confirmation.", {}),
         ]
 
     async def execute(self, name: str, args: dict) -> dict:
@@ -49,5 +53,10 @@ class SystemSkill(Skill):
                 for t in skill.tools():
                     caps.append(f"{t['name']} — {t['description']}")
             return {"ok": True, "result": {"capabilities": caps}}
+
+        # confirm/cancel are normally intercepted by the orchestrator (it holds
+        # the pending action). If they reach here, there was nothing to confirm.
+        if name in ("system.confirm", "system.cancel"):
+            return {"ok": True, "result": {"message": "There's nothing waiting for confirmation."}}
 
         return {"ok": False, "error": f"unknown system action: {name}"}

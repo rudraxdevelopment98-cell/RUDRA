@@ -1,5 +1,7 @@
 # RUDRA PC agent dependencies
 aiomqtt>=2.0          # async MQTT client
-# platform volume / automation libs added in Phase 3, e.g.:
-# pycaw ; sys_platform == "win32"
-# psutil
+
+# Optional, platform-specific (only needed for those features):
+# pycaw ; sys_platform == "win32"      # Windows volume control
+# comtypes ; sys_platform == "win32"   # required by pycaw
+# (Linux volume uses pactl/amixer; macOS uses osascript — no pip deps.)

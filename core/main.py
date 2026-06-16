@@ -56,8 +56,8 @@ async def main() -> None:
     # 5. Voice — wake word → STT → brain → TTS.
     voice = VoicePipeline(config, brain)
 
-    log.info("✅ RUDRA skeleton is wired. Subsystems: memory, bus, skills, brain, voice.")
-    log.info("   (Phase 0 — no real actions yet. See docs/ROADMAP.md.)")
+    log.info("✅ RUDRA is wired. Subsystems: memory, bus, skills, brain, voice.")
+    log.info("   Brain + PC control are live; voice is opt-in. See docs/ROADMAP.md.")
 
     try:
         await voice.run()  # in Phase 0 this just idles.

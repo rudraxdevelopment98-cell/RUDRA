@@ -47,13 +47,18 @@ every subsystem is wired (no real actions yet).
 train/point `RUDRA_WAKE_MODEL_PATH` at an openWakeWord model for "rudra" — final
 live check needs a microphone, speakers, and those keys/model.)*
 
-## Phase 3 — Control the PC
+## Phase 3 — Control the PC  🟢 (built)
 *Goal: first real device.*
-- [ ] PC agent connects to the bus, registers itself.
-- [ ] Skills: open app, run allow-listed script, volume, lock/sleep, file search.
-- [ ] Confirmation flow for dangerous actions.
+- [x] Real MQTT bus (aiomqtt) with wildcard routing; stub fallback when no broker.
+- [x] PC agent connects to the bus, registers itself, reports events.
+- [x] Skills: open app, run allow-listed script, volume, lock/sleep/shutdown, file search.
+- [x] Confirmation flow for dangerous actions (`system.confirm` / `system.cancel`).
+- [x] Brain learns online devices from `register` events (device registry).
+- [x] `tests/test_phase3.py` covers topic matching, confirmation, registry, agent.
 
 **Done when:** "Rudra, open VS Code and mute the volume" works.
+*(Code complete + unit-tested. A live run needs an MQTT broker — `docker compose
+up` starts Mosquitto — plus `python agents/pc-agent/agent.py` on the target PC.)*
 
 ## Phase 4 — Smart home / IoT
 *Goal: the classic JARVIS moment.*

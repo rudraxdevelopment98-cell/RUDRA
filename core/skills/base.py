@@ -14,7 +14,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from core.bus.mqtt import Bus, new_id
-from core.bus.topics import topic, CMD
+from core.bus.topics import topic, CMD, EVENT
 from core.log import get_logger
 from core.memory.store import Memory
 
@@ -48,7 +48,7 @@ class Skill(ABC):
 
     # --- helper every device-backed skill uses ---
     async def dispatch(self, device: str, action: str, args: dict,
-                       needs_confirm: bool = False) -> dict:
+                       needs_confirm: bool = False, confirmed: bool = False) -> dict:
         """Publish a Command to a device and return a 'dispatched' result."""
         cmd_id = new_id("cmd")
         await self.bus.publish(
@@ -57,8 +57,9 @@ class Skill(ABC):
                 "id": cmd_id,
                 "action": action,
                 "args": args,
-                "reply_to": topic(self.domain, device, "event"),
+                "reply_to": topic(self.domain, device, EVENT),
                 "needs_confirm": needs_confirm,
+                "confirmed": confirmed,
             },
         )
         return {
@@ -66,8 +67,21 @@ class Skill(ABC):
             "status": "dispatched",
             "command_id": cmd_id,
             "device": device,
-            "note": f"Command '{action}' sent to {device}. "
-                    f"(The {device} agent is not online yet — see ROADMAP.)",
+            "note": f"Command '{action}' sent to {device}.",
+        }
+
+    def needs_confirmation(self, device: str, action: str, args: dict, message: str) -> dict:
+        """
+        Return a result telling the brain to ask the user before acting.
+
+        The orchestrator stashes `pending` and, once the user confirms (via the
+        `system.confirm` tool), re-issues it as a single `confirmed` command.
+        """
+        return {
+            "ok": True,
+            "status": "needs_confirmation",
+            "message": message,
+            "pending": {"domain": self.domain, "device": device, "action": action, "args": args},
         }
 
 

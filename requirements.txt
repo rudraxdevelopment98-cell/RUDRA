@@ -7,8 +7,8 @@
 anthropic>=0.40          # Claude API client — the brain
 # memory uses the stdlib sqlite3, no dependency needed.
 
-# --- Phase 1+: bus (wired in a later phase) ---
-aiomqtt>=2.0             # async MQTT client
+# --- Bus (wired in Phase 3) ---  (in use)
+aiomqtt>=2.0             # async MQTT client (brain falls back to a stub if absent)
 
 # --- optional control surface (later) ---
 # fastapi>=0.110
