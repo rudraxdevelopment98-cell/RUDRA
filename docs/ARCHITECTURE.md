@@ -40,7 +40,7 @@ devices without touching the brain.
 Hybrid, as decided:
 - **Wake word** — `openWakeWord` (local, free). Listens for "Rudra".
 - **STT** — `faster-whisper` (local). Audio → text.
-- **TTS** — cloud (e.g. ElevenLabs / Deepgram) for a natural voice; pluggable.
+- **TTS** — cloud (ElevenLabs) for a natural voice; pluggable.
 - **pipeline.py** — owns the microphone loop and chains wake → stt → brain → tts.
 
 Each piece is behind an interface so any engine can be swapped (local↔cloud)
@@ -106,12 +106,11 @@ Later it can share the look of RD-Portal.
 | Bus          | MQTT (Mosquitto)                | Lightweight, perfect for IoT          |
 | Wake word    | openWakeWord                    | Free, local, custom words             |
 | STT          | faster-whisper                  | Accurate, runs local                  |
-| TTS          | Cloud (pluggable)               | Natural voice, light on hardware      |
+| TTS          | ElevenLabs (pluggable)          | Natural voice, light on hardware      |
 | IoT hub      | Home Assistant                  | Speaks to 1000s of devices already    |
 | Electronics  | ESP32 + Arduino                 | Cheap, Wi-Fi, MQTT-native             |
 | Packaging    | Docker Compose                  | Runs anywhere (PC / server / Pi)      |
 
 ## 6. What is intentionally NOT decided yet
-- Exact cloud TTS provider (interface is ready; pick during Phase 2).
 - Whether the dashboard becomes a full app or stays a status page.
 - Final brain host (Docker keeps this open).

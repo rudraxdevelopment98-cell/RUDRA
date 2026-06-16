@@ -34,14 +34,18 @@ every subsystem is wired (no real actions yet).
 **Done when:** `python -m core.chat` → "what time is it?" → correct spoken-style reply.
 *(Code complete + unit-tested. Final live check needs your `ANTHROPIC_API_KEY`.)*
 
-## Phase 2 — Voice
+## Phase 2 — Voice  🟢 (built)
 *Goal: talk to RUDRA hands-free.*
-- [ ] Local wake word ("Rudra") via openWakeWord.
-- [ ] Local STT via faster-whisper.
-- [ ] Cloud TTS (pick provider) behind the `tts` interface.
-- [ ] Full loop: wake → listen → think → speak.
+- [x] Local wake word via openWakeWord (bring your own "rudra" model — see below).
+- [x] Local STT via faster-whisper, with energy-based silence detection.
+- [x] Cloud TTS via ElevenLabs behind the `tts` interface.
+- [x] Full loop: wake → listen → think → speak (`core/voice/pipeline.py`).
+- [x] `tests/test_phase2.py` covers config, class wiring, and idle behaviour.
 
 **Done when:** say "Rudra, what time is it?" and hear the answer.
+*(Code complete + unit-tested. Set `RUDRA_VOICE_ENABLED=true`, `TTS_API_KEY`, and
+train/point `RUDRA_WAKE_MODEL_PATH` at an openWakeWord model for "rudra" — final
+live check needs a microphone, speakers, and those keys/model.)*
 
 ## Phase 3 — Control the PC
 *Goal: first real device.*

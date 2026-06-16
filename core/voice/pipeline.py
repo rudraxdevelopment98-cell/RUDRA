@@ -3,8 +3,8 @@ Voice pipeline — chains the ears, brain, and mouth into one loop.
 
     wake word  →  STT  →  orchestrator.handle()  →  TTS
 
-Phase 0: `run()` just idles (so `docker compose up` stays alive without a mic).
-Phase 2: flip USE_VOICE on and the real loop below takes over.
+Set RUDRA_VOICE_ENABLED=true (and a microphone/speaker) to run the real loop.
+Otherwise the pipeline idles so `docker compose up` stays alive headless.
 """
 from __future__ import annotations
 
@@ -18,9 +18,6 @@ from core.voice.wakeword import WakeWord
 
 log = get_logger("rudra.voice.pipeline")
 
-# Phase 2 flips this on. Until then we don't touch the microphone.
-USE_VOICE = False
-
 
 class VoicePipeline:
     def __init__(self, config: Config, brain):
@@ -31,13 +28,12 @@ class VoicePipeline:
         self.tts = TTS(config)
 
     async def run(self) -> None:
-        if not USE_VOICE:
-            log.info("🛌 voice loop idle (Phase 0). Set USE_VOICE=True in Phase 2.")
+        if not self.config.voice_enabled:
+            log.info("🛌 voice loop idle. Set RUDRA_VOICE_ENABLED=true to turn on the mic.")
             # Keep the process alive so the bus/brain stay up.
             while True:
                 await asyncio.sleep(3600)
 
-        # --- Phase 2: the real loop ---
         while True:
             await self.wake.wait_for_wake()        # "Rudra"
             text = await self.stt.listen()         # what you said

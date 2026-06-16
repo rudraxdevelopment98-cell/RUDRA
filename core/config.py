@@ -31,9 +31,15 @@ class Config:
     mqtt_password: str = field(default_factory=lambda: _env("MQTT_PASSWORD"))
 
     # --- Voice (hybrid: local wake/STT, cloud TTS) ---
+    voice_enabled: bool = field(default_factory=lambda: _env("RUDRA_VOICE_ENABLED", "false").lower() == "true")
+    wake_model_path: str = field(default_factory=lambda: _env("RUDRA_WAKE_MODEL_PATH"))
+    wake_threshold: float = field(default_factory=lambda: float(_env("RUDRA_WAKE_THRESHOLD", "0.5")))
     stt_engine: str = field(default_factory=lambda: _env("RUDRA_STT", "faster-whisper"))
-    tts_engine: str = field(default_factory=lambda: _env("RUDRA_TTS", "cloud"))
+    stt_model_size: str = field(default_factory=lambda: _env("RUDRA_STT_MODEL", "base.en"))
+    tts_engine: str = field(default_factory=lambda: _env("RUDRA_TTS", "elevenlabs"))
     tts_api_key: str = field(default_factory=lambda: _env("TTS_API_KEY"))
+    tts_voice_id: str = field(default_factory=lambda: _env("RUDRA_TTS_VOICE_ID", "Adam"))
+    sample_rate: int = field(default_factory=lambda: int(_env("RUDRA_SAMPLE_RATE", "16000")))
 
     # --- Memory ---
     db_path: str = field(default_factory=lambda: _env("RUDRA_DB", "rudra.db"))
@@ -47,8 +53,13 @@ class Config:
         warnings: list[str] = []
         if not self.anthropic_api_key:
             warnings.append("ANTHROPIC_API_KEY is not set — the brain cannot think yet.")
-        if self.tts_engine == "cloud" and not self.tts_api_key:
+        if self.voice_enabled and self.tts_engine == "elevenlabs" and not self.tts_api_key:
             warnings.append("TTS_API_KEY is not set — cloud voice replies are disabled.")
+        if self.voice_enabled and not self.wake_model_path:
+            warnings.append(
+                "RUDRA_WAKE_MODEL_PATH is not set — falling back to a stock openWakeWord "
+                "model instead of a model trained on the word 'rudra'."
+            )
         return warnings
 
 

@@ -14,8 +14,8 @@ aiomqtt>=2.0             # async MQTT client
 # fastapi>=0.110
 # uvicorn>=0.29
 
-# --- Phase 2: voice (hybrid) ---
-# openwakeword>=0.6       # local wake word
-# faster-whisper>=1.0     # local speech-to-text
-# sounddevice>=0.4        # microphone capture
-# (cloud TTS uses the provider's own SDK — added when chosen)
+# --- Phase 2: voice (hybrid) ---  (in use)
+openwakeword>=0.6        # local wake word
+faster-whisper>=1.0      # local speech-to-text
+sounddevice>=0.4         # microphone capture
+elevenlabs>=1.0          # cloud text-to-speech
