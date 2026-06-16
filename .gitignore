@@ -1,0 +1,21 @@
+# Secrets / config
+.env
+*.db
+
+# ESP32 private config
+agents/esp32/rudra_node/config.h
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Mosquitto data
+infra/data/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

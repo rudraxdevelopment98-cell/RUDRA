@@ -1,0 +1,28 @@
+# RUDRA — runs the nervous system (MQTT broker) and the brain together.
+# Portable: works the same on a PC, a home server, or a Raspberry Pi.
+#
+#   docker compose up
+#
+services:
+  # The MQTT broker — every device talks through this.
+  broker:
+    image: eclipse-mosquitto:2
+    container_name: rudra-broker
+    ports:
+      - "1883:1883"     # MQTT
+      - "9001:9001"     # MQTT over WebSocket (for the dashboard)
+    volumes:
+      - ./infra/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  # The brain — listens, thinks (Claude), and commands devices.
+  brain:
+    build: .
+    container_name: rudra-brain
+    depends_on:
+      - broker
+    env_file:
+      - .env
+    environment:
+      MQTT_HOST: broker
+    restart: unless-stopped

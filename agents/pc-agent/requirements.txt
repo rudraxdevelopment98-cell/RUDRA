@@ -1,0 +1,5 @@
+# RUDRA PC agent dependencies
+aiomqtt>=2.0          # async MQTT client
+# platform volume / automation libs added in Phase 3, e.g.:
+# pycaw ; sys_platform == "win32"
+# psutil

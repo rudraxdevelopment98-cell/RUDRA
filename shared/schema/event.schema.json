@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RUDRA Event",
+  "description": "Message sent by an agent back to the brain (channel: event).",
+  "type": "object",
+  "required": ["in_reply_to", "ok"],
+  "properties": {
+    "id": { "type": "string", "description": "Unique event id, e.g. evt_d4e5f6" },
+    "ts": { "type": "integer", "description": "UNIX seconds" },
+    "in_reply_to": { "type": "string", "description": "The command id this answers" },
+    "ok": { "type": "boolean", "description": "Did the action succeed?" },
+    "result": { "description": "Any result payload (object/string/number/null)" },
+    "error": { "type": ["string", "null"], "description": "Error message if ok is false" }
+  }
+}

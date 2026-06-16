@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RUDRA Command",
+  "description": "Message sent by the brain to an agent (channel: cmd).",
+  "type": "object",
+  "required": ["id", "action"],
+  "properties": {
+    "id": { "type": "string", "description": "Unique command id, e.g. cmd_a1b2c3" },
+    "ts": { "type": "integer", "description": "UNIX seconds" },
+    "action": { "type": "string", "description": "Tool name, e.g. pc.open_app" },
+    "args": { "type": "object", "description": "Action arguments" },
+    "reply_to": { "type": "string", "description": "Topic the agent should publish its Event to" },
+    "needs_confirm": { "type": "boolean", "default": false },
+    "confirmed": { "type": "boolean", "description": "Set true on the second, confirming command" }
+  }
+}

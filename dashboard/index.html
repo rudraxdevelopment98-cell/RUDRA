@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RUDRA — Command Center</title>
+  <style>
+    :root { --bg:#0b0f17; --panel:#121826; --line:#1f2940; --text:#e6edf7; --muted:#8aa0c0; --accent:#5b8cff; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:24px 28px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; }
+    .dot { width:12px; height:12px; border-radius:50%; background:#f0b429; box-shadow:0 0 12px #f0b429; }
+    h1 { font-size:20px; margin:0; letter-spacing:2px; }
+    .sub { color:var(--muted); font-size:13px; }
+    main { padding:28px; display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+    .card h2 { font-size:14px; color:var(--muted); margin:0 0 12px; text-transform:uppercase; letter-spacing:1px; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#0e1626; border:1px solid var(--line); color:var(--muted); font-size:12px; margin:3px 4px 0 0; }
+    .log { font-family:ui-monospace,monospace; font-size:12px; color:var(--muted); white-space:pre-wrap; }
+    footer { padding:16px 28px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="dot" title="Phase 0 — skeleton"></span>
+    <div>
+      <h1>RUDRA</h1>
+      <div class="sub">voice-driven AI command center · Phase 0 (skeleton)</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Subsystems</h2>
+      <span class="pill">🧠 brain</span><span class="pill">🔌 bus</span>
+      <span class="pill">👂 voice</span><span class="pill">🧠 memory</span>
+      <span class="pill">🧩 skills</span>
+    </section>
+
+    <section class="card">
+      <h2>Targets</h2>
+      <span class="pill">💻 PC</span><span class="pill">📱 phone</span>
+      <span class="pill">🏠 IoT</span><span class="pill">⚡ electronics</span>
+    </section>
+
+    <section class="card">
+      <h2>Online devices</h2>
+      <div class="log" id="devices">— none yet (Phase 0) —</div>
+    </section>
+
+    <section class="card">
+      <h2>Bus activity</h2>
+      <div class="log" id="bus">Waiting for the brain… (live feed lands in Phase 7)</div>
+    </section>
+  </main>
+
+  <footer>
+    This is a static placeholder. Phase 7 wires it to the brain's WebSocket /
+    MQTT-over-WS for a live view. See <code>docs/ROADMAP.md</code>.
+  </footer>
+
+  <!-- TODO(Phase 7): connect to the brain and render live devices + bus traffic. -->
+</body>
+</html>

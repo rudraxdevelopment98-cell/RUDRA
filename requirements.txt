@@ -1,0 +1,18 @@
+# RUDRA core (the brain) — Python 3.11+
+#
+# Phase 0 runs on the standard library alone; these are the libs each phase needs.
+# Uncomment as we implement, or install the lot to develop ahead.
+
+# --- Phase 1: brain ---
+anthropic>=0.40          # Claude API client
+fastapi>=0.110           # control/API surface for the brain
+uvicorn>=0.29            # ASGI server
+
+# --- Phase 1: bus ---
+aiomqtt>=2.0             # async MQTT client
+
+# --- Phase 2: voice (hybrid) ---
+# openwakeword>=0.6       # local wake word
+# faster-whisper>=1.0     # local speech-to-text
+# sounddevice>=0.4        # microphone capture
+# (cloud TTS uses the provider's own SDK — added when chosen)
