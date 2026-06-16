@@ -21,15 +21,18 @@ These phases mirror the project's phases in **RD-Portal**.
 **Done when:** `docker compose up` boots the brain and broker and logs that
 every subsystem is wired (no real actions yet).
 
-## Phase 1 — Brain online (text)
+## Phase 1 — Brain online (text)  🟢 (built)
 *Goal: type a command, RUDRA understands and routes it (no voice yet).*
-- [ ] Wire the real Claude API in `brain/llm.py`.
-- [ ] Define the v0 tool catalogue in `brain/intents.py`.
-- [ ] Orchestrator: text in → Claude tool call → Skill → reply.
-- [ ] `system` skill working end-to-end (time, status, "what can you do").
-- [ ] Memory: store conversation turns in SQLite.
+- [x] Wire the real Claude API in `brain/llm.py` (full tool-use loop).
+- [x] Build the v0 tool catalogue from every skill (`brain/intents.py`).
+- [x] Orchestrator: text in → Claude tool call → Skill → reply.
+- [x] `system` skill working end-to-end (time, status, capabilities).
+- [x] Memory: store conversation turns in SQLite.
+- [x] `python -m core.chat` REPL to talk by typing.
+- [x] `tests/test_phase1.py` covers memory, skills, routing, catalogue.
 
-**Done when:** a chat box (or curl) → "what time is it?" → correct spoken-style reply.
+**Done when:** `python -m core.chat` → "what time is it?" → correct spoken-style reply.
+*(Code complete + unit-tested. Final live check needs your `ANTHROPIC_API_KEY`.)*
 
 ## Phase 2 — Voice
 *Goal: talk to RUDRA hands-free.*

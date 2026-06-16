@@ -29,4 +29,7 @@ def load_skills(bus: Bus, memory: Memory) -> dict[str, Skill]:
     for cls in SKILL_CLASSES:
         skill = cls(bus, memory)
         skills[skill.domain] = skill
+    # The system skill introspects every other skill for "what can you do".
+    if "system" in skills:
+        skills["system"].all_skills = skills
     return skills

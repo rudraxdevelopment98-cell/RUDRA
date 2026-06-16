@@ -69,19 +69,27 @@ shared/       message schemas shared by brain and agents
 docs/         architecture, roadmap, protocol
 ```
 
-## Quick start (skeleton)
-
-> The scaffold runs but does not yet do real work — it boots the brain, the MQTT
-> bus, and prints that each subsystem is wired.
+## Quick start
 
 ```bash
-cp .env.example .env          # add your ANTHROPIC_API_KEY etc.
-docker compose up             # starts MQTT broker + the brain
-# or, without Docker:
+cp .env.example .env          # add your ANTHROPIC_API_KEY
 pip install -r requirements.txt
-python -m core.main
+
+# Phase 1 — talk to the brain by typing:
+python -m core.chat
+#   you ▸ what time is it?
+#   Rudra ▸ It's Tuesday 16 June 2026, 9:12 PM.
+
+# Run the tests (no API key needed):
+python -m tests.test_phase1
+
+# Boot the whole system (idles until voice lands in Phase 2):
+docker compose up             # MQTT broker + brain
+# or:  python -m core.main
 ```
 
 ## Status
 
-🟡 **Phase 0 — Skeleton.** Architecture + stubs in place. See the roadmap.
+🟢 **Phase 1 — Brain online (text).** Claude understands typed commands, routes
+them to skills, and replies; the `system` skill works end-to-end and
+conversations persist to SQLite. Voice is next (Phase 2). See the roadmap.

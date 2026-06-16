@@ -3,13 +3,16 @@
 # Phase 0 runs on the standard library alone; these are the libs each phase needs.
 # Uncomment as we implement, or install the lot to develop ahead.
 
-# --- Phase 1: brain ---
-anthropic>=0.40          # Claude API client
-fastapi>=0.110           # control/API surface for the brain
-uvicorn>=0.29            # ASGI server
+# --- Phase 1: brain ---  (in use)
+anthropic>=0.40          # Claude API client — the brain
+# memory uses the stdlib sqlite3, no dependency needed.
 
-# --- Phase 1: bus ---
+# --- Phase 1+: bus (wired in a later phase) ---
 aiomqtt>=2.0             # async MQTT client
+
+# --- optional control surface (later) ---
+# fastapi>=0.110
+# uvicorn>=0.29
 
 # --- Phase 2: voice (hybrid) ---
 # openwakeword>=0.6       # local wake word

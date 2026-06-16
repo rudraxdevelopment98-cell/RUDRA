@@ -30,7 +30,8 @@ class ElectronicsSkill(Skill):
                  ["node", "sensor"]),
         ]
 
-    async def execute(self, name: str, args: dict) -> None:
+    async def execute(self, name: str, args: dict) -> dict:
         node = args.get("node", "unknown")
-        cmd_id = await self.send_command(node, name, args)
-        log.info("→ node command %s (%s) sent as %s", name, args, cmd_id)
+        result = await self.dispatch(node, name, args)
+        log.info("→ node command %s (%s) → %s", name, args, result["command_id"])
+        return result

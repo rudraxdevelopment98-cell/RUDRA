@@ -28,6 +28,7 @@ class PhoneSkill(Skill):
                  {"name": {"type": "string"}}, ["name"]),
         ]
 
-    async def execute(self, name: str, args: dict) -> None:
-        cmd_id = await self.send_command(DEFAULT_DEVICE, name, args)
-        log.info("→ phone command %s (%s) sent as %s", name, args, cmd_id)
+    async def execute(self, name: str, args: dict) -> dict:
+        result = await self.dispatch(DEFAULT_DEVICE, name, args)
+        log.info("→ phone command %s (%s) → %s", name, args, result["command_id"])
+        return result

@@ -3,10 +3,11 @@ Skill base class.
 
 A Skill is one capability area (pc, phone, iot, electronics, system). Each Skill:
   1. declares its tools()  → specs Claude can call
-  2. implements execute()  → turns a tool call into a bus Command (or local work)
+  2. implements execute()  → returns a result the brain feeds back to Claude
 
-Most skills just publish a Command to the bus; the owning *agent* does the real
-work and replies with an Event. Skills stay thin and hardware-free.
+Most skills publish a Command to the bus; the owning *agent* does the real work
+and replies with an Event. Until an agent exists, the skill returns a
+"dispatched" result so the brain can still answer sensibly. Skills stay thin.
 """
 from __future__ import annotations
 
@@ -34,14 +35,21 @@ class Skill(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def execute(self, name: str, args: dict) -> None:
-        """Carry out a tool call (usually by publishing a Command)."""
+    async def execute(self, name: str, args: dict) -> dict:
+        """
+        Carry out a tool call and return a JSON-able result dict.
+
+        Convention:
+          {"ok": True, "result": {...}}            success
+          {"ok": False, "error": "..."}            failure
+          {"ok": True, "status": "dispatched", ...} command sent to an agent
+        """
         raise NotImplementedError
 
-    # --- helper every skill can use ---
-    async def send_command(self, device: str, action: str, args: dict,
-                           needs_confirm: bool = False) -> str:
-        """Publish a Command to a device and return the command id."""
+    # --- helper every device-backed skill uses ---
+    async def dispatch(self, device: str, action: str, args: dict,
+                       needs_confirm: bool = False) -> dict:
+        """Publish a Command to a device and return a 'dispatched' result."""
         cmd_id = new_id("cmd")
         await self.bus.publish(
             topic(self.domain, device, CMD),
@@ -53,7 +61,14 @@ class Skill(ABC):
                 "needs_confirm": needs_confirm,
             },
         )
-        return cmd_id
+        return {
+            "ok": True,
+            "status": "dispatched",
+            "command_id": cmd_id,
+            "device": device,
+            "note": f"Command '{action}' sent to {device}. "
+                    f"(The {device} agent is not online yet — see ROADMAP.)",
+        }
 
 
 def tool(name: str, description: str, properties: dict, required: list[str] | None = None) -> dict:

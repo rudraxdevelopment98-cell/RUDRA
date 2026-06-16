@@ -35,8 +35,9 @@ class PCSkill(Skill):
                  {"query": {"type": "string"}}, ["query"]),
         ]
 
-    async def execute(self, name: str, args: dict) -> None:
+    async def execute(self, name: str, args: dict) -> dict:
         # Power actions are dangerous → require confirmation per the protocol.
         needs_confirm = name == "pc.power"
-        cmd_id = await self.send_command(DEFAULT_DEVICE, name, args, needs_confirm)
-        log.info("→ PC command %s (%s) sent as %s", name, args, cmd_id)
+        result = await self.dispatch(DEFAULT_DEVICE, name, args, needs_confirm)
+        log.info("→ PC command %s (%s) → %s", name, args, result["command_id"])
+        return result
