@@ -60,12 +60,17 @@ live check needs a microphone, speakers, and those keys/model.)*
 *(Code complete + unit-tested. A live run needs an MQTT broker — `docker compose
 up` starts Mosquitto — plus `python agents/pc-agent/agent.py` on the target PC.)*
 
-## Phase 4 — Smart home / IoT
+## Phase 4 — Smart home / IoT  🟢 (built)
 *Goal: the classic JARVIS moment.*
-- [ ] Home Assistant integration in the `iot` skill.
-- [ ] Lights, plugs, sensors readable + controllable.
+- [x] Home Assistant bridge agent (`agents/iot/`) drives the `iot` skill.
+- [x] Lights, plugs, scenes controllable; sensors readable (with values).
+- [x] Bus request/reply so reads return the actual value (not just "sent").
+- [x] Spoken names resolve to HA entity ids (friendly-name / id matching).
+- [x] `tests/test_phase4.py` covers request/reply, the skill, and the agent.
 
 **Done when:** "Rudra, turn off the bedroom lights" works.
+*(Code complete + unit-tested. A live run needs an MQTT broker plus a running
+Home Assistant — set `HA_URL`/`HA_TOKEN` and start `python agents/iot/agent.py`.)*
 
 ## Phase 5 — Custom electronics
 *Goal: control hardware you wired yourself.*

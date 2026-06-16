@@ -1,0 +1,4 @@
+# RUDRA IoT agent dependencies
+aiomqtt>=2.0          # async MQTT client
+# Home Assistant is reached over its REST API using the stdlib (urllib) — no
+# extra HTTP dependency needed.

@@ -34,6 +34,8 @@ class IoTSkill(Skill):
         ]
 
     async def execute(self, name: str, args: dict) -> dict:
-        result = await self.dispatch(DEFAULT_DEVICE, name, args)
-        log.info("→ IoT command %s (%s) → %s", name, args, result["command_id"])
+        # IoT calls are quick and we want the result (sensor value / confirmation),
+        # so use request/reply rather than fire-and-forget.
+        result = await self.request(DEFAULT_DEVICE, name, args)
+        log.info("→ IoT command %s (%s) → ok=%s", name, args, result.get("ok"))
         return result

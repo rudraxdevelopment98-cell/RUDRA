@@ -55,6 +55,7 @@ class Bus:
         self._connected = False
         self._stub = True               # flips to False once a real client connects
         self._listen_task: asyncio.Task | None = None
+        self._pending: dict[str, asyncio.Future] = {}  # cmd_id → event future
 
     async def connect(self) -> None:
         try:
@@ -118,6 +119,28 @@ class Bus:
         await self._client.publish(topic, body)
         log.info("📤 publish %s  %s", topic, body)
 
+    async def request(self, topic: str, payload: dict, timeout: float = 5.0) -> dict | None:
+        """
+        Publish a Command and await the correlated Event (matched by command id).
+
+        Returns the Event dict, or None if no reply arrives in `timeout` seconds
+        or the bus is in stub mode (no broker to carry the reply).
+        """
+        cmd_id = payload.setdefault("id", new_id("cmd"))
+        if self._stub or self._client is None:
+            await self.publish(topic, payload)
+            return None
+        fut: asyncio.Future = asyncio.get_event_loop().create_future()
+        self._pending[cmd_id] = fut
+        try:
+            await self.publish(topic, payload)
+            return await asyncio.wait_for(fut, timeout)
+        except asyncio.TimeoutError:
+            log.warning("⏱ no reply to %s within %.1fs", cmd_id, timeout)
+            return None
+        finally:
+            self._pending.pop(cmd_id, None)
+
     async def _listen(self) -> None:
         """Background task: route each incoming message to matching handlers."""
         assert self._client is not None
@@ -130,6 +153,12 @@ class Bus:
         except (json.JSONDecodeError, TypeError):
             log.warning("Bad JSON on %s", topic)
             return
+        # Resolve any pending request waiting on this event.
+        in_reply_to = payload.get("in_reply_to")
+        if in_reply_to and in_reply_to in self._pending:
+            fut = self._pending.get(in_reply_to)
+            if fut and not fut.done():
+                fut.set_result(payload)
         for pattern, handler in list(self._handlers.items()):
             if topic_matches(pattern, topic):
                 try:

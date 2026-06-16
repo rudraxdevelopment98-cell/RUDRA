@@ -70,6 +70,38 @@ class Skill(ABC):
             "note": f"Command '{action}' sent to {device}.",
         }
 
+    async def request(self, device: str, action: str, args: dict,
+                      timeout: float = 5.0) -> dict:
+        """
+        Send a Command and wait for the agent's Event (e.g. a sensor reading).
+
+        Returns the agent's event on success; otherwise a 'dispatched' result so
+        the brain can still answer when the agent/broker isn't there.
+        """
+        cmd_id = new_id("cmd")
+        event = await self.bus.request(
+            topic(self.domain, device, CMD),
+            {
+                "id": cmd_id,
+                "action": action,
+                "args": args,
+                "reply_to": topic(self.domain, device, EVENT),
+                "needs_confirm": False,
+                "confirmed": False,
+            },
+            timeout=timeout,
+        )
+        if event is None:
+            return {
+                "ok": True,
+                "status": "dispatched",
+                "command_id": cmd_id,
+                "device": device,
+                "note": f"Sent '{action}' to {device}; no reply yet "
+                        f"(agent offline or no broker).",
+            }
+        return event
+
     def needs_confirmation(self, device: str, action: str, args: dict, message: str) -> dict:
         """
         Return a result telling the brain to ask the user before acting.
