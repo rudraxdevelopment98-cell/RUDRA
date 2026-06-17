@@ -6,166 +6,167 @@
   <title>RUDRA — Command Center</title>
   <style>
     :root {
-      --bg:#06070c; --panel:#11131c; --panel2:#0b0d15; --line:#232a40;
+      --bg:#05060b; --panel:rgba(18,21,33,0.72); --panel2:#0b0d15; --line:#222a42;
       --text:#eef2fb; --muted:#8a93b3; --accent:#6f8cff; --accent2:#3df2c8;
       --danger:#ff5c7a; --warn:#ffc857;
     }
     * { box-sizing: border-box; }
     html, body { margin:0; height:100%; }
     body {
-      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color:var(--text); min-height:100vh; position:relative; overflow-x:hidden;
+      font-family:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:var(--bg); color:var(--text); min-height:100vh; position:relative; overflow-x:hidden;
     }
 
-    /* ambient animated background */
-    #bg-canvas { position:fixed; inset:0; z-index:0; opacity:.55; }
-    .glow {
-      position:fixed; width:60vw; height:60vw; border-radius:50%; z-index:0;
-      filter:blur(90px); opacity:.28; pointer-events:none;
-      animation: drift 22s ease-in-out infinite alternate;
-    }
-    .glow.a { background:#3d5bff; top:-20vw; left:-15vw; }
-    .glow.b { background:#19e0b0; bottom:-25vw; right:-15vw; animation-delay:6s; }
-    @keyframes drift {
-      0%   { transform:translate(0,0) scale(1); }
-      50%  { transform:translate(4vw,3vw) scale(1.08); }
-      100% { transform:translate(-3vw,-2vw) scale(0.96); }
-    }
+    /* layered animated background */
+    #particles { position:fixed; inset:0; z-index:0; }
+    .glow { position:fixed; width:55vw; height:55vw; border-radius:50%; z-index:0;
+      filter:blur(100px); opacity:.22; pointer-events:none; animation:drift 24s ease-in-out infinite alternate; }
+    .glow.a { background:#3d5bff; top:-22vw; left:-14vw; }
+    .glow.b { background:#19e0b0; bottom:-26vw; right:-14vw; animation-delay:7s; }
+    .glow.c { background:#a14dff; top:30vh; right:25vw; width:30vw; height:30vw; animation-delay:3s; }
+    @keyframes drift { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(4vw,3vw) scale(1.1);} 100%{transform:translate(-3vw,-2vw) scale(.95);} }
 
     header {
-      position:relative; z-index:5;
-      padding:22px 32px; border-bottom:1px solid var(--line);
-      display:flex; align-items:center; gap:16px; position:sticky; top:0;
-      background:rgba(6,7,12,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      position:sticky; top:0; z-index:10;
+      padding:20px 32px; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; gap:18px;
+      background:rgba(5,6,11,0.7); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
     }
-    .orb {
-      width:38px; height:38px; border-radius:50%;
-      background: radial-gradient(circle at 35% 30%, #9fb4ff, #3d5bff 55%, #1a2566 100%);
-      box-shadow: 0 0 18px 2px rgba(95,130,255,.55), inset 0 0 10px rgba(255,255,255,.25);
-      position:relative; flex:none;
-    }
-    .orb::after {
-      content:''; position:absolute; inset:-6px; border-radius:50%;
-      border:1px solid rgba(95,130,255,.4); animation: pulse 2.4s ease-out infinite;
-    }
-    @keyframes pulse { 0%{ transform:scale(.85); opacity:.9; } 100%{ transform:scale(1.5); opacity:0; } }
-    .orb.thinking { animation: spin 1.1s linear infinite; }
-    @keyframes spin { to { filter: hue-rotate(360deg); } }
-
-    .dot { width:10px; height:10px; border-radius:50%; background:var(--warn); box-shadow:0 0 10px var(--warn); transition:.3s; }
+    .reactor { position:relative; width:54px; height:54px; flex:none; }
+    .reactor canvas { position:absolute; inset:0; }
+    h1 { font-size:22px; margin:0; letter-spacing:5px; font-weight:800;
+         background:linear-gradient(90deg,#fff,#9fb4ff,#3df2c8); background-size:200% auto;
+         -webkit-background-clip:text; background-clip:text; color:transparent; animation:shine 6s linear infinite; }
+    @keyframes shine { to { background-position:200% center; } }
+    .sub { color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:8px; margin-top:3px; }
+    .dot { width:9px; height:9px; border-radius:50%; background:var(--warn); box-shadow:0 0 10px var(--warn); transition:.3s; }
     .dot.online { background:var(--accent2); box-shadow:0 0 10px var(--accent2); }
     .dot.offline { background:var(--danger); box-shadow:0 0 10px var(--danger); }
-    h1 { font-size:21px; margin:0; letter-spacing:4px; font-weight:700;
-         background:linear-gradient(90deg,#fff,#b9c6ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .sub { color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:8px; margin-top:2px; }
+    .header-spacer { flex:1; }
+    .stat { text-align:right; font-size:11px; color:var(--muted); line-height:1.5; }
+    .stat b { color:var(--accent2); font-size:15px; font-family:ui-monospace,monospace; }
 
-    main {
-      position:relative; z-index:5;
-      padding:28px; display:grid; gap:20px;
-      grid-template-columns: 1.4fr 1fr; max-width:1240px; margin:0 auto;
-    }
-    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+    main { position:relative; z-index:5; padding:26px; display:grid; gap:20px;
+      grid-template-columns:1.5fr 1fr; max-width:1280px; margin:0 auto; }
+    @media (max-width:920px){ main { grid-template-columns:1fr; } }
 
-    .card {
-      background:linear-gradient(160deg, var(--panel), var(--panel2));
-      border:1px solid var(--line); border-radius:18px; padding:20px 22px;
-      display:flex; flex-direction:column;
-      box-shadow: 0 18px 40px -22px rgba(0,0,0,.6);
-      transition: border-color .3s;
-    }
-    .card:hover { border-color:#33406a; }
-    .card h2 { font-size:12.5px; color:var(--muted); margin:0 0 14px; text-transform:uppercase; letter-spacing:1.8px; font-weight:600; }
-    .pill { display:inline-block; padding:5px 11px; border-radius:999px; background:var(--panel2); border:1px solid var(--line); color:var(--muted); font-size:12px; margin:3px 4px 0 0; transition:.2s; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:20px 22px;
+      display:flex; flex-direction:column; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+      box-shadow:0 22px 50px -28px rgba(0,0,0,.7); transition:border-color .3s, transform .3s; }
+    .card:hover { border-color:#36436e; }
+    .card h2 { font-size:12px; color:var(--muted); margin:0 0 14px; text-transform:uppercase; letter-spacing:2px; font-weight:700;
+      display:flex; align-items:center; gap:8px; }
+    .card h2 .badge { margin-left:auto; font-weight:600; letter-spacing:0; text-transform:none; color:var(--accent2);
+      background:rgba(61,242,200,.1); border:1px solid rgba(61,242,200,.25); padding:2px 9px; border-radius:999px; font-size:11px; }
+
+    .pill { display:inline-block; padding:5px 11px; border-radius:999px; background:var(--panel2); border:1px solid var(--line);
+      color:var(--muted); font-size:12px; margin:3px 4px 0 0; transition:.2s; }
     .pill.cap { color:var(--text); cursor:default; }
-    .pill.cap:hover { border-color:var(--accent); color:var(--accent2); }
-    .mono { font-family:ui-monospace, "SF Mono", Consolas, monospace; }
+    .pill.cap:hover { border-color:var(--accent); color:var(--accent2); transform:translateY(-1px); }
+    .pill.live { color:var(--accent2); border-color:rgba(61,242,200,.3); }
 
-    /* Chat */
-    #chat-card { grid-row: span 2; min-height: 560px; }
+    /* chat */
+    #chat-card { grid-row:span 3; min-height:600px; }
+    #wave { width:100%; height:54px; margin-bottom:8px; display:block; }
     #chat-log { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; padding:4px 4px 14px; }
-    #chat-log::-webkit-scrollbar { width:6px; }
-    #chat-log::-webkit-scrollbar-thumb { background:var(--line); border-radius:3px; }
-    .msg { max-width:85%; padding:11px 15px; border-radius:14px; font-size:14.5px; line-height:1.5; white-space:pre-wrap;
-           animation: rise .25s ease-out; }
-    @keyframes rise { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-    .msg.user { align-self:flex-end; background:linear-gradient(135deg,var(--accent),#4a5fe0); color:#fff; border-bottom-right-radius:4px; box-shadow:0 6px 18px -8px rgba(111,140,255,.6); }
+    #chat-log::-webkit-scrollbar { width:6px; } #chat-log::-webkit-scrollbar-thumb { background:var(--line); border-radius:3px; }
+    .msg { max-width:86%; padding:11px 15px; border-radius:15px; font-size:14.5px; line-height:1.5; white-space:pre-wrap; animation:rise .28s ease-out; }
+    @keyframes rise { from { opacity:0; transform:translateY(8px) scale(.98);} to { opacity:1; transform:none;} }
+    .msg.user { align-self:flex-end; background:linear-gradient(135deg,var(--accent),#4a5fe0); color:#fff; border-bottom-right-radius:4px; box-shadow:0 8px 22px -10px rgba(111,140,255,.7); }
     .msg.rudra { align-self:flex-start; background:var(--panel2); border:1px solid var(--line); border-bottom-left-radius:4px; }
     .msg.sys { align-self:center; color:var(--muted); font-size:12px; font-style:italic; }
     .msg.thinking { align-self:flex-start; display:flex; gap:5px; padding:14px 16px; }
-    .msg.thinking span { width:6px; height:6px; border-radius:50%; background:var(--accent2); animation: bounce 1.1s infinite; }
-    .msg.thinking span:nth-child(2) { animation-delay:.15s; }
-    .msg.thinking span:nth-child(3) { animation-delay:.3s; }
-    @keyframes bounce { 0%,60%,100% { transform:translateY(0); opacity:.4; } 30% { transform:translateY(-4px); opacity:1; } }
+    .msg.thinking span { width:7px; height:7px; border-radius:50%; background:var(--accent2); animation:bounce 1.1s infinite; }
+    .msg.thinking span:nth-child(2){ animation-delay:.15s; } .msg.thinking span:nth-child(3){ animation-delay:.3s; }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.4;} 30%{transform:translateY(-5px);opacity:1;} }
 
     #chat-form { display:flex; gap:10px; margin-top:12px; }
-    #chat-input {
-      flex:1; background:var(--panel2); border:1px solid var(--line); border-radius:12px;
-      padding:12px 15px; color:var(--text); font-size:14.5px; outline:none; transition:border-color .2s;
-    }
+    #chat-input { flex:1; background:var(--panel2); border:1px solid var(--line); border-radius:13px; padding:12px 15px; color:var(--text); font-size:14.5px; outline:none; transition:.2s; }
     #chat-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(111,140,255,.15); }
-    .icon-btn {
-      width:44px; height:44px; border-radius:12px; border:1px solid var(--line); background:var(--panel2);
-      color:var(--muted); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center;
-      transition:.2s; flex:none;
-    }
+    .icon-btn { width:46px; height:46px; border-radius:13px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:.2s; flex:none; }
     .icon-btn:hover { color:var(--text); border-color:var(--accent); }
     .icon-btn.active { background:var(--danger); border-color:var(--danger); color:#fff; animation:micpulse 1.2s infinite; }
-    @keyframes micpulse { 0%,100%{ box-shadow:0 0 0 0 rgba(255,92,122,.5); } 50%{ box-shadow:0 0 0 8px rgba(255,92,122,0); } }
-    #chat-form button[type=submit] {
-      background:linear-gradient(135deg,var(--accent),#4a5fe0); color:#fff; border:none; border-radius:12px;
-      padding:0 22px; font-weight:600; cursor:pointer; font-size:14px;
-    }
+    @keyframes micpulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,92,122,.5);} 50%{box-shadow:0 0 0 9px rgba(255,92,122,0);} }
+    #chat-form button[type=submit] { background:linear-gradient(135deg,var(--accent),#4a5fe0); color:#fff; border:none; border-radius:13px; padding:0 22px; font-weight:600; cursor:pointer; font-size:14px; }
     #chat-form button:disabled { opacity:.5; cursor:default; }
-    .chat-toolbar { display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px; }
+    .chat-toolbar { display:flex; justify-content:flex-end; gap:14px; margin-bottom:8px; }
     .toggle { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; user-select:none; }
-    .toggle input { accent-color: var(--accent); }
+    .toggle input { accent-color:var(--accent); }
 
-    /* Logs */
-    .log { font-family:ui-monospace,monospace; font-size:11.5px; color:var(--muted); white-space:pre-wrap; overflow-y:auto; max-height:220px; line-height:1.6; }
+    .log { font-family:ui-monospace,monospace; font-size:11.5px; color:var(--muted); white-space:pre-wrap; overflow-y:auto; max-height:200px; line-height:1.6; }
+
+    /* device connect */
+    .device-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; }
+    .device-row:last-child { border-bottom:none; }
+    .device-row .d-dot { width:8px; height:8px; border-radius:50%; background:var(--accent2); box-shadow:0 0 8px var(--accent2); flex:none; }
+    .device-row .d-meta { color:var(--muted); font-size:11px; margin-left:auto; }
+    .connect-btn { margin-top:12px; align-self:flex-start; background:transparent; border:1px solid var(--accent); color:var(--accent2); border-radius:10px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; transition:.2s; }
+    .connect-btn:hover { background:rgba(111,140,255,.12); }
+
+    /* modal */
+    .modal-bg { position:fixed; inset:0; z-index:50; background:rgba(3,4,9,.78); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; padding:24px; }
+    .modal-bg.open { display:flex; animation:fade .2s; }
+    @keyframes fade { from{opacity:0;} to{opacity:1;} }
+    .modal { background:linear-gradient(160deg,#141826,#0b0d15); border:1px solid var(--line); border-radius:20px; padding:26px 28px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 30px 80px -20px rgba(0,0,0,.8); }
+    .modal h3 { margin:0 0 6px; font-size:19px; letter-spacing:1px; }
+    .modal p.lead { color:var(--muted); font-size:13px; margin:0 0 18px; }
+    .dev-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .dev-tab { padding:8px 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); cursor:pointer; font-size:13px; transition:.2s; }
+    .dev-tab.active { border-color:var(--accent); color:var(--text); background:rgba(111,140,255,.12); }
+    .dev-body { font-size:13.5px; line-height:1.7; color:#d4dcf0; }
+    .dev-body code { background:#05060b; border:1px solid var(--line); border-radius:6px; padding:2px 7px; font-family:ui-monospace,monospace; color:var(--accent2); font-size:12.5px; }
+    .dev-body ol { padding-left:20px; margin:8px 0; }
+    .dev-body pre { background:#05060b; border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow-x:auto; font-size:12px; color:#cdd6ee; }
+    .modal-close { float:right; cursor:pointer; color:var(--muted); font-size:22px; line-height:1; border:none; background:none; }
+    .modal-close:hover { color:var(--text); }
 
     footer { position:relative; z-index:5; padding:20px 28px; color:var(--muted); font-size:12px; text-align:center; }
-    footer code { color:var(--accent2); }
-    a { color: var(--accent2); }
+    footer code { color:var(--accent2); } a { color:var(--accent2); }
   </style>
 </head>
 <body>
-  <canvas id="bg-canvas"></canvas>
-  <div class="glow a"></div>
-  <div class="glow b"></div>
+  <canvas id="particles"></canvas>
+  <div class="glow a"></div><div class="glow b"></div><div class="glow c"></div>
 
   <header>
-    <div class="orb" id="orb"></div>
+    <div class="reactor"><canvas id="reactor-canvas" width="108" height="108"></canvas></div>
     <div>
       <h1>RUDRA</h1>
-      <div class="sub"><span class="dot" id="conn-dot" title="connecting…"></span><span id="subtitle">connecting…</span></div>
+      <div class="sub"><span class="dot" id="conn-dot"></span><span id="subtitle">connecting…</span></div>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="stat">
+      <div><b id="stat-skills">—</b> skills</div>
+      <div><b id="stat-devices">0</b> devices online</div>
     </div>
   </header>
 
   <main>
     <section class="card" id="chat-card">
-      <h2>Talk to RUDRA</h2>
+      <h2>Talk to RUDRA <span class="badge" id="brain-badge">●</span></h2>
+      <canvas id="wave"></canvas>
       <div class="chat-toolbar">
         <label class="toggle"><input type="checkbox" id="voice-toggle" checked /> speak replies</label>
       </div>
       <div id="chat-log"></div>
       <form id="chat-form">
         <button type="button" class="icon-btn" id="mic-btn" title="Voice input">🎙️</button>
-        <input id="chat-input" type="text" placeholder="Type a command… e.g. 'what time is it?'" autocomplete="off" />
+        <input id="chat-input" type="text" placeholder="Type or speak a command… e.g. 'what time is it?'" autocomplete="off" />
         <button id="chat-send" type="submit">Send</button>
       </form>
     </section>
 
     <section class="card">
       <h2>Subsystems</h2>
-      <span class="pill">🧠 brain</span><span class="pill">🔌 bus</span>
-      <span class="pill">👂 voice</span><span class="pill">🧠 memory</span>
-      <span class="pill">🧩 skills</span>
+      <span class="pill live">🧠 brain</span><span class="pill">🔌 bus</span>
+      <span class="pill">👂 voice</span><span class="pill live">💾 memory</span>
+      <span class="pill live">🧩 skills</span>
     </section>
 
     <section class="card">
-      <h2>Online devices</h2>
-      <div class="log" id="devices">— none yet —</div>
+      <h2>Connected devices <span class="badge" id="dev-count">0</span></h2>
+      <div id="devices"><div class="msg sys">No devices online yet.</div></div>
+      <button class="connect-btn" id="open-connect">＋ Connect a device</button>
     </section>
 
     <section class="card">
@@ -184,197 +185,215 @@
     <a href="https://github.com/rudraxdevelopment98-cell/rudra" target="_blank" rel="noopener">GitHub</a>.
   </footer>
 
+  <!-- connect device modal -->
+  <div class="modal-bg" id="connect-modal">
+    <div class="modal">
+      <button class="modal-close" id="close-connect">×</button>
+      <h3>Connect a device</h3>
+      <p class="lead">Devices join RUDRA over the MQTT bus. Pick a type for setup steps.</p>
+      <div class="dev-tabs" id="dev-tabs"></div>
+      <div class="dev-body" id="dev-body"></div>
+    </div>
+  </div>
+
   <script>
-    // ---------- ambient starfield background ----------
+    // ================= particle field =================
     (function () {
-      const canvas = document.getElementById('bg-canvas');
-      const ctx = canvas.getContext('2d');
-      let stars = [];
+      const c = document.getElementById('particles'), ctx = c.getContext('2d');
+      let pts = [], mouse = { x:-999, y:-999 };
       function resize() {
-        canvas.width = innerWidth; canvas.height = innerHeight;
-        stars = Array.from({ length: Math.floor((innerWidth * innerHeight) / 9000) }, () => ({
-          x: Math.random() * innerWidth, y: Math.random() * innerHeight,
-          r: Math.random() * 1.3 + 0.2, s: Math.random() * 0.015 + 0.003, p: Math.random() * Math.PI * 2,
+        c.width = innerWidth; c.height = innerHeight;
+        const n = Math.min(120, Math.floor((innerWidth*innerHeight)/14000));
+        pts = Array.from({length:n}, () => ({
+          x:Math.random()*c.width, y:Math.random()*c.height,
+          vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35
         }));
       }
+      addEventListener('mousemove', e => { mouse.x=e.clientX; mouse.y=e.clientY; });
+      addEventListener('resize', resize);
       function tick() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (const star of stars) {
-          star.p += star.s;
-          const alpha = 0.35 + 0.55 * Math.abs(Math.sin(star.p));
-          ctx.beginPath();
-          ctx.fillStyle = `rgba(180,200,255,${alpha})`;
-          ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.clearRect(0,0,c.width,c.height);
+        for (const p of pts) {
+          p.x+=p.vx; p.y+=p.vy;
+          if (p.x<0||p.x>c.width) p.vx*=-1;
+          if (p.y<0||p.y>c.height) p.vy*=-1;
+          ctx.beginPath(); ctx.arc(p.x,p.y,1.4,0,7); ctx.fillStyle='rgba(120,150,255,.55)'; ctx.fill();
         }
+        for (let i=0;i<pts.length;i++) for (let j=i+1;j<pts.length;j++) {
+          const a=pts[i], b=pts[j], d=Math.hypot(a.x-b.x,a.y-b.y);
+          if (d<130) { ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+            ctx.strokeStyle=`rgba(95,130,255,${.12*(1-d/130)})`; ctx.stroke(); }
+        }
+        for (const p of pts) { const d=Math.hypot(p.x-mouse.x,p.y-mouse.y);
+          if (d<160) { ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(mouse.x,mouse.y);
+            ctx.strokeStyle=`rgba(61,242,200,${.22*(1-d/160)})`; ctx.stroke(); } }
         requestAnimationFrame(tick);
       }
-      addEventListener('resize', resize);
       resize(); tick();
     })();
 
-    const dot = document.getElementById('conn-dot');
-    const orb = document.getElementById('orb');
-    const subtitle = document.getElementById('subtitle');
-    const chatLog = document.getElementById('chat-log');
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatSend = document.getElementById('chat-send');
-    const micBtn = document.getElementById('mic-btn');
-    const voiceToggle = document.getElementById('voice-toggle');
-    const devicesEl = document.getElementById('devices');
-    const capsEl = document.getElementById('capabilities');
-    const busLogEl = document.getElementById('bus-log');
-
-    let thinkingEl = null;
-
-    function addMsg(role, text) {
-      const div = document.createElement('div');
-      div.className = 'msg ' + role;
-      div.textContent = text;
-      chatLog.appendChild(div);
-      chatLog.scrollTop = chatLog.scrollHeight;
-      return div;
-    }
-
-    function showThinking() {
-      thinkingEl = document.createElement('div');
-      thinkingEl.className = 'msg thinking';
-      thinkingEl.innerHTML = '<span></span><span></span><span></span>';
-      chatLog.appendChild(thinkingEl);
-      chatLog.scrollTop = chatLog.scrollHeight;
-      orb.classList.add('thinking');
-    }
-    function hideThinking() {
-      if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
-      orb.classList.remove('thinking');
-    }
-
-    // ---------- speech synthesis (RUDRA speaks back) ----------
-    function speak(text) {
-      if (!voiceToggle.checked || !text || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1.02; utter.pitch = 0.95;
-      window.speechSynthesis.speak(utter);
-    }
-
-    // ---------- speech recognition (mic input) ----------
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognizer = null;
-    let listening = false;
-    if (SpeechRecognition) {
-      recognizer = new SpeechRecognition();
-      recognizer.lang = 'en-US';
-      recognizer.interimResults = false;
-      recognizer.maxAlternatives = 1;
-      recognizer.onresult = (ev) => {
-        const said = ev.results[0][0].transcript;
-        chatInput.value = said;
-        chatForm.requestSubmit();
-      };
-      recognizer.onend = () => { listening = false; micBtn.classList.remove('active'); };
-      recognizer.onerror = () => { listening = false; micBtn.classList.remove('active'); };
-      micBtn.addEventListener('click', () => {
-        if (listening) { recognizer.stop(); return; }
-        window.speechSynthesis.cancel();
-        listening = true;
-        micBtn.classList.add('active');
-        recognizer.start();
-      });
-    } else {
-      micBtn.disabled = true;
-      micBtn.title = 'Voice input not supported in this browser';
-      micBtn.style.opacity = .35;
-    }
-
-    addMsg('sys', 'Connecting to RUDRA…');
-
-    // --- chat over WebSocket, falls back to REST if the socket can't open ---
-    const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
-    let chatWs = null;
-    let wsReady = false;
-
-    function connectChatWs() {
-      chatWs = new WebSocket(`${wsProto}://${location.host}/ws/chat`);
-      chatWs.onopen = () => { wsReady = true; dot.className = 'dot online'; subtitle.textContent = 'online'; };
-      chatWs.onclose = () => { wsReady = false; dot.className = 'dot offline'; subtitle.textContent = 'disconnected — retrying…'; setTimeout(connectChatWs, 2000); };
-      chatWs.onerror = () => {};
-      chatWs.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === 'reply') {
-          hideThinking();
-          addMsg('rudra', msg.text || '…');
-          speak(msg.text);
-          chatSend.disabled = false;
+    // ================= arc-reactor core (header) =================
+    const reactor = (function () {
+      const cv = document.getElementById('reactor-canvas'), ctx = cv.getContext('2d');
+      const cx=54, cy=54; let t=0, energy=0; // energy 0..1 spikes on activity
+      function frame() {
+        ctx.clearRect(0,0,108,108); t+=0.03; energy*=0.94;
+        const baseR = 20 + energy*6;
+        for (let ring=0; ring<3; ring++) {
+          ctx.beginPath();
+          ctx.arc(cx,cy, baseR+ring*9, t*(ring%2?-1:1), t*(ring%2?-1:1)+Math.PI*1.5);
+          ctx.strokeStyle = ring===0 ? `rgba(61,242,200,${.8})` : `rgba(111,140,255,${.5-ring*.12})`;
+          ctx.lineWidth = 2.4-ring*.5; ctx.stroke();
         }
-      };
+        const glow = ctx.createRadialGradient(cx,cy,0,cx,cy,22+energy*10);
+        glow.addColorStop(0,`rgba(120,200,255,${.55+energy*.4})`);
+        glow.addColorStop(1,'rgba(60,90,255,0)');
+        ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(cx,cy,22+energy*10,0,7); ctx.fill();
+        requestAnimationFrame(frame);
+      }
+      frame();
+      return { pulse(){ energy=Math.min(1,energy+0.9); } };
+    })();
+
+    // ================= reactive voice waveform =================
+    const wave = (function () {
+      const cv = document.getElementById('wave'); const ctx = cv.getContext('2d');
+      let amp = 0.06, target = 0.06, t = 0;
+      function resize(){ cv.width = cv.clientWidth*devicePixelRatio; cv.height=54*devicePixelRatio; ctx.scale(1,1);}
+      function frame() {
+        amp += (target-amp)*0.08; target = Math.max(0.05, target*0.95); t+=0.05;
+        const w=cv.width, h=cv.height; ctx.clearRect(0,0,w,h);
+        ctx.lineWidth = 2*devicePixelRatio;
+        const grad = ctx.createLinearGradient(0,0,w,0);
+        grad.addColorStop(0,'#6f8cff'); grad.addColorStop(.5,'#3df2c8'); grad.addColorStop(1,'#a14dff');
+        ctx.strokeStyle = grad; ctx.beginPath();
+        for (let x=0; x<=w; x+=4) {
+          const k = x/w;
+          const env = Math.sin(k*Math.PI); // taper at edges
+          const y = h/2 + Math.sin(k*22 + t)*Math.sin(k*7 - t*1.3)*h*0.42*amp*env*8;
+          x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        }
+        ctx.stroke(); requestAnimationFrame(frame);
+      }
+      addEventListener('resize', resize); resize(); frame();
+      return { spike(v){ target = Math.max(target, v||0.6); } };
+    })();
+
+    // ================= DOM refs =================
+    const dot=document.getElementById('conn-dot'), subtitle=document.getElementById('subtitle');
+    const chatLog=document.getElementById('chat-log'), chatForm=document.getElementById('chat-form');
+    const chatInput=document.getElementById('chat-input'), chatSend=document.getElementById('chat-send');
+    const micBtn=document.getElementById('mic-btn'), voiceToggle=document.getElementById('voice-toggle');
+    const devicesEl=document.getElementById('devices'), capsEl=document.getElementById('capabilities');
+    const busLogEl=document.getElementById('bus-log');
+    const statSkills=document.getElementById('stat-skills'), statDevices=document.getElementById('stat-devices');
+    const devCount=document.getElementById('dev-count'), brainBadge=document.getElementById('brain-badge');
+    let thinkingEl=null;
+
+    function addMsg(role,text){ const d=document.createElement('div'); d.className='msg '+role; d.textContent=text;
+      chatLog.appendChild(d); chatLog.scrollTop=chatLog.scrollHeight; return d; }
+    function showThinking(){ thinkingEl=document.createElement('div'); thinkingEl.className='msg thinking';
+      thinkingEl.innerHTML='<span></span><span></span><span></span>'; chatLog.appendChild(thinkingEl);
+      chatLog.scrollTop=chatLog.scrollHeight; brainBadge.style.color='var(--warn)'; }
+    function hideThinking(){ if(thinkingEl){thinkingEl.remove();thinkingEl=null;} brainBadge.style.color='var(--accent2)'; }
+
+    // ================= voice out =================
+    function speak(text){ if(!voiceToggle.checked||!text||!('speechSynthesis' in window))return;
+      window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.rate=1.02; u.pitch=.95;
+      u.onboundary=()=>wave.spike(0.5); u.onstart=()=>wave.spike(0.8); window.speechSynthesis.speak(u); }
+
+    // ================= voice in =================
+    const SR = window.SpeechRecognition||window.webkitSpeechRecognition; let recog=null, listening=false;
+    if (SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=false; recog.maxAlternatives=1;
+      recog.onresult=e=>{ chatInput.value=e.results[0][0].transcript; chatForm.requestSubmit(); };
+      recog.onaudiostart=()=>wave.spike(0.7); recog.onspeechstart=()=>wave.spike(0.9);
+      recog.onend=()=>{ listening=false; micBtn.classList.remove('active'); };
+      recog.onerror=()=>{ listening=false; micBtn.classList.remove('active'); };
+      micBtn.addEventListener('click',()=>{ if(listening){recog.stop();return;}
+        window.speechSynthesis.cancel(); listening=true; micBtn.classList.add('active'); recog.start(); });
+    } else { micBtn.disabled=true; micBtn.title='Voice input not supported here'; micBtn.style.opacity=.35; }
+
+    addMsg('sys','Connecting to RUDRA…');
+
+    // ================= chat WS =================
+    const wsProto = location.protocol==='https:'?'wss':'ws'; let chatWs=null, wsReady=false;
+    function connectChatWs(){
+      chatWs=new WebSocket(`${wsProto}://${location.host}/ws/chat`);
+      chatWs.onopen=()=>{ wsReady=true; dot.className='dot online'; subtitle.textContent='online'; };
+      chatWs.onclose=()=>{ wsReady=false; dot.className='dot offline'; subtitle.textContent='disconnected — retrying…'; setTimeout(connectChatWs,2000); };
+      chatWs.onmessage=ev=>{ const m=JSON.parse(ev.data);
+        if(m.type==='reply'){ hideThinking(); addMsg('rudra',m.text||'…'); speak(m.text); reactor.pulse(); wave.spike(0.7); chatSend.disabled=false; } };
     }
     connectChatWs();
 
-    chatForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = chatInput.value.trim();
-      if (!text) return;
-      addMsg('user', text);
-      chatInput.value = '';
-      chatSend.disabled = true;
-      showThinking();
-      if (wsReady) {
-        chatWs.send(text);
-      } else {
-        try {
-          const res = await fetch('/api/chat', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
-          });
-          const data = await res.json();
-          hideThinking();
-          addMsg('rudra', data.reply || '…');
-          speak(data.reply);
-        } catch (err) {
-          hideThinking();
-          addMsg('sys', 'Could not reach RUDRA: ' + err);
-        } finally {
-          chatSend.disabled = false;
-        }
-      }
+    chatForm.addEventListener('submit', async e=>{
+      e.preventDefault(); const text=chatInput.value.trim(); if(!text)return;
+      addMsg('user',text); chatInput.value=''; chatSend.disabled=true; showThinking(); reactor.pulse(); wave.spike(0.9);
+      if(wsReady){ chatWs.send(text); }
+      else { try{ const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+        const d=await r.json(); hideThinking(); addMsg('rudra',d.reply||'…'); speak(d.reply); reactor.pulse(); }
+        catch(err){ hideThinking(); addMsg('sys','Could not reach RUDRA: '+err); } finally { chatSend.disabled=false; } }
     });
 
-    // --- status polling: devices + capabilities ---
-    async function refreshStatus() {
-      try {
-        const res = await fetch('/api/status');
-        const data = await res.json();
-        const devices = Object.entries(data.devices || {});
-        devicesEl.textContent = devices.length
-          ? devices.map(([id, d]) => `${id}  (${d.domain})`).join('\n')
-          : '— none online —';
-        capsEl.innerHTML = (data.capabilities || [])
-          .map(c => `<span class="pill cap" title="${c.description}">${c.name}</span>`)
-          .join('');
-      } catch (err) { /* server may still be booting */ }
+    // ================= status =================
+    async function refreshStatus(){
+      try{ const r=await fetch('/api/status'); const d=await r.json();
+        const devices=Object.entries(d.devices||{});
+        statDevices.textContent=devices.length; devCount.textContent=devices.length;
+        statSkills.textContent=(d.skills||[]).length;
+        devicesEl.innerHTML = devices.length
+          ? devices.map(([id,dev])=>`<div class="device-row"><span class="d-dot"></span><span>${id}</span><span class="d-meta">${dev.domain||''}</span></div>`).join('')
+          : '<div class="msg sys">No devices online yet.</div>';
+        capsEl.innerHTML=(d.capabilities||[]).map(c=>`<span class="pill cap" title="${c.description}">${c.name}</span>`).join('');
+      }catch(err){}
     }
-    refreshStatus();
-    setInterval(refreshStatus, 5000);
+    refreshStatus(); setInterval(refreshStatus,5000);
 
-    // --- live log feed ---
-    function connectLogWs() {
-      const ws = new WebSocket(`${wsProto}://${location.host}/ws/logs`);
-      let lines = [];
-      ws.onopen = () => { busLogEl.textContent = ''; };
-      ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === 'log') {
-          lines.push(msg.line);
-          if (lines.length > 60) lines.shift();
-          busLogEl.textContent = lines.join('\n');
-          busLogEl.scrollTop = busLogEl.scrollHeight;
-        }
-      };
-      ws.onclose = () => setTimeout(connectLogWs, 2000);
+    // ================= live log =================
+    function connectLogWs(){
+      const ws=new WebSocket(`${wsProto}://${location.host}/ws/logs`); let lines=[];
+      ws.onopen=()=>{ busLogEl.textContent=''; };
+      ws.onmessage=ev=>{ const m=JSON.parse(ev.data);
+        if(m.type==='log'){ lines.push(m.line); if(lines.length>60)lines.shift();
+          busLogEl.textContent=lines.join('\n'); busLogEl.scrollTop=busLogEl.scrollHeight; } };
+      ws.onclose=()=>setTimeout(connectLogWs,2000);
     }
     connectLogWs();
+
+    // ================= connect-device modal =================
+    const DEVICE_GUIDES = {
+      'ESP32 / Arduino': `<p>Custom electronics (relays, LEDs, sensors) join over MQTT.</p>
+        <ol><li>Flash the firmware in <code>agents/esp32/rudra_node.ino</code> with the Arduino IDE.</li>
+        <li>Edit <code>config.h</code>: set your Wi-Fi SSID/password and the broker host (your server's <code>MQTT_HOST</code>).</li>
+        <li>Give it a node id, e.g. <code>esp32-desk</code>, and map relays/sensors to pins.</li>
+        <li>Power it on — it announces itself and appears here. Then say <em>"turn on the desk relay"</em>.</li></ol>
+        <p>No board yet? Run the simulator: <pre>python agents/esp32/node_sim.py --id esp32-desk</pre></p>`,
+      'Phone (Android/iOS)': `<p>Reach your phone via Home Assistant Companion (Android) or Shortcuts (iOS).</p>
+        <ol><li>Install the Home Assistant Companion app and connect it to your HA instance.</li>
+        <li>Enable notifications + location in the app.</li>
+        <li>Set the phone agent device id to <code>my-phone</code> (see <code>agents/phone/</code>).</li>
+        <li>Try <em>"find my phone"</em> or <em>"notify my phone: dinner's ready"</em>.</li></ol>`,
+      'Smart home (Home Assistant)': `<p>Bridge thousands of devices through Home Assistant.</p>
+        <ol><li>In HA, create a Long-Lived Access Token (Profile → Security).</li>
+        <li>Set <code>HA_URL</code> and <code>HA_TOKEN</code> env vars on the IoT bridge (<code>agents/iot/</code>).</li>
+        <li>Start the bridge — lights, switches, scenes and sensors become available.</li>
+        <li>Try <em>"turn on the living room lights"</em> or <em>"what's the temperature?"</em>.</li></ol>`,
+      'PC / Laptop': `<p>Control your computer (open apps, volume, scripts, power).</p>
+        <ol><li>Run the PC agent from <code>agents/pc-agent/</code> on the machine.</li>
+        <li>Point it at the broker (<code>MQTT_HOST</code>) and give it id <code>main-pc</code>.</li>
+        <li>It enforces an allow-list of scripts for safety.</li>
+        <li>Try <em>"open code"</em> or <em>"set volume to 30"</em>.</li></ol>`,
+    };
+    const modal=document.getElementById('connect-modal'), tabsEl=document.getElementById('dev-tabs'), bodyEl=document.getElementById('dev-body');
+    const names=Object.keys(DEVICE_GUIDES);
+    tabsEl.innerHTML=names.map((n,i)=>`<div class="dev-tab${i===0?' active':''}" data-n="${n}">${n}</div>`).join('');
+    function showGuide(n){ bodyEl.innerHTML=DEVICE_GUIDES[n];
+      [...tabsEl.children].forEach(t=>t.classList.toggle('active',t.dataset.n===n)); }
+    showGuide(names[0]);
+    tabsEl.addEventListener('click',e=>{ if(e.target.dataset.n) showGuide(e.target.dataset.n); });
+    document.getElementById('open-connect').addEventListener('click',()=>modal.classList.add('open'));
+    document.getElementById('close-connect').addEventListener('click',()=>modal.classList.remove('open'));
+    modal.addEventListener('click',e=>{ if(e.target===modal) modal.classList.remove('open'); });
   </script>
 </body>
 </html>

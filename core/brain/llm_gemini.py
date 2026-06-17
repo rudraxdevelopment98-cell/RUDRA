@@ -34,8 +34,11 @@ def _convert_schema(schema: dict) -> dict:
     out["type"] = _TYPE_MAP.get(json_type, json_type.upper())
     if "description" in schema:
         out["description"] = schema["description"]
-    if "enum" in schema:
-        out["enum"] = schema["enum"]
+    # Gemini's Schema.enum is `repeated string`, so it only accepts STRING enums
+    # with string values. Stringify for STRING types; drop it for others
+    # (e.g. an integer enum like [0, 1]) — the type alone still constrains it.
+    if "enum" in schema and out["type"] == "STRING":
+        out["enum"] = [str(v) for v in schema["enum"]]
     if json_type == "object" and "properties" in schema:
         out["properties"] = {k: _convert_schema(v) for k, v in schema["properties"].items()}
         if schema.get("required"):
@@ -49,11 +52,16 @@ def _convert_tools(tools: list[dict]) -> list[dict]:
     """Translate RUDRA's Anthropic-style tool specs into Gemini function_declarations."""
     declarations = []
     for t in tools:
-        declarations.append({
+        decl: dict = {
             "name": t["name"],
             "description": t["description"],
-            "parameters": _convert_schema(t["input_schema"]),
-        })
+        }
+        params = _convert_schema(t["input_schema"])
+        # A parameterless tool (e.g. system.time) has no properties; Gemini's
+        # SDK rejects an empty OBJECT schema, so omit `parameters` entirely.
+        if params.get("properties"):
+            decl["parameters"] = params
+        declarations.append(decl)
     return [{"function_declarations": declarations}]
 
 
