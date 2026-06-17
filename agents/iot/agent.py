@@ -34,6 +34,7 @@ MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 MQTT_USERNAME = os.environ.get("MQTT_USERNAME") or None
 MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD") or None
+MQTT_TLS = os.environ.get("MQTT_TLS", "").lower() == "true"
 
 HA_URL = os.environ.get("HA_URL", "http://localhost:8123").rstrip("/")
 HA_TOKEN = os.environ.get("HA_TOKEN", "")
@@ -186,9 +187,11 @@ async def main() -> None:
         print("[iot-agent] WARNING: HA_TOKEN is not set — calls will be rejected.")
     ha = HomeAssistant()
     print(f"[iot-agent] bridging {HA_URL} via {MQTT_HOST}:{MQTT_PORT}")
+    tls_params = aiomqtt.TLSParameters() if MQTT_TLS else None
     async with aiomqtt.Client(
         hostname=MQTT_HOST, port=MQTT_PORT,
         username=MQTT_USERNAME, password=MQTT_PASSWORD,
+        tls_params=tls_params,
     ) as client:
         await client.publish(REGISTER_TOPIC, json.dumps(register_payload()))
         await client.subscribe(CMD_TOPIC)

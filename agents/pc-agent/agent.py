@@ -34,6 +34,7 @@ MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 MQTT_USERNAME = os.environ.get("MQTT_USERNAME") or None
 MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD") or None
+MQTT_TLS = os.environ.get("MQTT_TLS", "").lower() == "true"
 
 OS = platform.system()  # 'Linux' | 'Darwin' | 'Windows'
 
@@ -228,10 +229,13 @@ def handle_command(cmd: dict) -> dict:
 async def main() -> None:
     import aiomqtt
 
-    print(f"[pc-agent] {DEVICE_ID} on {OS} — connecting to {MQTT_HOST}:{MQTT_PORT}")
+    print(f"[pc-agent] {DEVICE_ID} on {OS} — connecting to {MQTT_HOST}:{MQTT_PORT}"
+          f"{' (TLS)' if MQTT_TLS else ''}")
+    tls_params = aiomqtt.TLSParameters() if MQTT_TLS else None
     async with aiomqtt.Client(
         hostname=MQTT_HOST, port=MQTT_PORT,
         username=MQTT_USERNAME, password=MQTT_PASSWORD,
+        tls_params=tls_params,
     ) as client:
         await client.publish(REGISTER_TOPIC, json.dumps(register_payload()))
         await client.subscribe(CMD_TOPIC)
