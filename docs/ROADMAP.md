@@ -72,12 +72,18 @@ up` starts Mosquitto — plus `python agents/pc-agent/agent.py` on the target PC
 *(Code complete + unit-tested. A live run needs an MQTT broker plus a running
 Home Assistant — set `HA_URL`/`HA_TOKEN` and start `python agents/iot/agent.py`.)*
 
-## Phase 5 — Custom electronics
+## Phase 5 — Custom electronics  🟢 (built)
 *Goal: control hardware you wired yourself.*
-- [ ] Flash an ESP32 node from `agents/esp32/`.
-- [ ] Node auto-registers on the bus; `electronics` skill drives its pins.
+- [x] ESP32 firmware (`rudra_node.ino`) parses commands, drives named relays/pins,
+      reads sensors, publishes retained state, and replies with Events.
+- [x] Node auto-registers on the bus; `electronics`/`node` skill drives its pins.
+- [x] `node_sim.py` — a software stand-in for the firmware (same protocol) so
+      the skill can be developed/tested without a physical board.
+- [x] `tests/test_phase5.py` covers the simulator's command logic and the skill.
 
 **Done when:** "Rudra, turn on the desk relay" flips a real relay.
+*(Code complete + unit-tested via the simulator. A live flip needs real
+hardware — flash `rudra_node.ino` per `agents/esp32/README.md`.)*
 
 ## Phase 6 — Phone
 *Goal: reach your phone.*

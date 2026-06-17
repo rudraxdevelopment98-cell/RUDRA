@@ -1,0 +1,4 @@
+# Only needed to run node_sim.py (the software stand-in for the firmware).
+# The real ESP32 firmware (rudra_node.ino) needs no Python deps — see its
+# header comment for the Arduino libraries it requires.
+aiomqtt>=2.0

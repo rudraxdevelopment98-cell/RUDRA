@@ -32,6 +32,10 @@ class ElectronicsSkill(Skill):
 
     async def execute(self, name: str, args: dict) -> dict:
         node = args.get("node", "unknown")
-        result = await self.dispatch(node, name, args)
-        log.info("→ node command %s (%s) → %s", name, args, result["command_id"])
+        if name == "node.read_sensor":
+            # We want the actual reading back, not just "sent".
+            result = await self.request(node, name, args)
+        else:
+            result = await self.dispatch(node, name, args)
+        log.info("→ node command %s (%s) → ok=%s", name, args, result.get("ok"))
         return result
