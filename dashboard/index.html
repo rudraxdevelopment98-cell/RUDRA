@@ -79,6 +79,12 @@
       position:relative;overflow:hidden;}
     .panel::before{content:'';position:absolute;top:0;left:14px;right:14px;height:1px;
       background:linear-gradient(90deg,transparent,var(--orange),transparent);opacity:.55;}
+    .panel::after,.list-card::after,.list-card::before{content:'';position:absolute;width:14px;height:14px;
+      border:2px solid var(--orange2);opacity:.5;pointer-events:none;}
+    .panel::after{top:6px;left:6px;border-right:none;border-bottom:none;}
+    .list-card{position:relative;overflow:hidden;}
+    .list-card::before{top:6px;left:6px;border-right:none;border-bottom:none;}
+    .list-card::after{bottom:6px;right:6px;border-left:none;border-top:none;}
     .panel h2{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin:0 0 12px;
       display:flex;align-items:center;gap:8px;font-weight:700;}
     .panel h2 .badge{margin-left:auto;color:var(--teal);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);
@@ -178,6 +184,15 @@
     .skill-bar-row .sb-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--orange2));}
     .skill-bar-row .sb-count{width:30px;text-align:right;font-family:ui-monospace,monospace;color:var(--orange2);}
     @media (max-width:900px){.an-grid{grid-template-columns:1fr;}}
+    .net-cv{width:100%;height:280px;display:block;}
+    .diag-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
+    .diag-row:last-child{border-bottom:none;}
+    .diag-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);margin-right:8px;}
+    .err-row{padding:6px 0;border-bottom:1px solid var(--line);font-size:12px;font-family:ui-monospace,monospace;color:var(--danger);}
+    .lat-bucket{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+    .lat-bucket .lb-label{width:70px;color:var(--muted);flex-shrink:0;}
+    .lat-bucket .lb-track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;}
+    .lat-bucket .lb-fill{height:100%;background:linear-gradient(90deg,var(--copper),var(--teal));}
     .mem-turn{padding:10px 14px;border-radius:11px;margin-bottom:8px;font-size:13.5px;line-height:1.5;max-width:75%;white-space:pre-wrap;}
     .mem-turn.user{background:linear-gradient(135deg,var(--orange),#0a7fcc);color:#fff;margin-left:auto;}
     .mem-turn.assistant{background:rgba(8,26,44,.8);border:1px solid var(--line2);}
@@ -235,6 +250,8 @@
         <a data-view="core"><span class="ico">◉</span> AI Core</a>
         <a data-view="agents"><span class="ico">⬡</span> Agents</a>
         <a data-view="analytics"><span class="ico">📈</span> Analytics</a>
+        <a data-view="network"><span class="ico">◈</span> Network</a>
+        <a data-view="diagnostics"><span class="ico">⌬</span> Diagnostics</a>
         <a data-view="memory"><span class="ico">▤</span> Memory</a>
         <a data-view="knowledge"><span class="ico">❖</span> Knowledge Base</a>
         <a data-view="skills"><span class="ico">✦</span> Tasks &amp; Skills</a>
@@ -344,6 +361,34 @@
             <thead><tr><th>Time</th><th>Latency</th><th>Result</th></tr></thead>
             <tbody><tr><td colspan="3" class="empty">No data yet.</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- NETWORK -->
+      <div class="view" id="view-network">
+        <div class="page-head"><h1>Network</h1><p>Live topology — brain, bus and connected agents.</p></div>
+        <div class="list-card">
+          <canvas id="net-canvas" class="net-cv"></canvas>
+        </div>
+        <div class="list-card">
+          <h3>Connected devices</h3>
+          <div id="net-devices"><div class="empty">No devices registered.</div></div>
+        </div>
+      </div>
+
+      <!-- DIAGNOSTICS -->
+      <div class="view" id="view-diagnostics">
+        <div class="page-head"><h1>Diagnostics</h1><p>Deep system readouts.</p></div>
+        <div class="list-card" id="diag-status"></div>
+        <div class="an-grid">
+          <div class="list-card">
+            <h3>Latency distribution</h3>
+            <div id="diag-latency"><div class="empty">No data yet.</div></div>
+          </div>
+          <div class="list-card">
+            <h3>Error log</h3>
+            <div id="diag-errors"><div class="empty">No errors recorded.</div></div>
+          </div>
         </div>
       </div>
 
@@ -581,8 +626,62 @@
       document.getElementById('req-table').querySelector('tbody').innerHTML=rows.length
         ? rows.map(h=>`<tr><td>${new Date(h.t*1000).toLocaleTimeString()}</td><td>${h.latency_ms} ms</td><td class="${h.ok?'ok':'bad'}">${h.ok?'ok':'error'}</td></tr>`).join('')
         : '<tr><td colspan="3" class="empty">No data yet.</td></tr>';
+
+      renderDiagnostics(m);
     }catch(err){}}
     refreshMetrics();setInterval(refreshMetrics,3000);
+
+    // ---------- diagnostics (derived from real metrics) ----------
+    function renderDiagnostics(m){
+      document.getElementById('diag-status').innerHTML=[
+        ['status','online'],['uptime',Math.round(m.uptime_s)+'s'],['llm provider','gemini'],
+        ['chat messages',m.chat_messages],['errors',m.errors],['avg latency',m.avg_latency_ms+' ms'],
+        ['live sockets',m.ws_connections],
+      ].map(([k,v])=>`<div class="diag-row"><span><span class="diag-dot"></span>${k}</span><b style="font-family:ui-monospace,monospace;color:var(--orange2)">${v}</b></div>`).join('');
+
+      const hist=m.history||[];
+      const buckets=[['<100ms',0],['100-500ms',0],['500ms-2s',0],['>2s',0]];
+      hist.forEach(h=>{const v=h.latency_ms;const i=v<100?0:v<500?1:v<2000?2:3;buckets[i][1]++;});
+      const maxB=Math.max(1,...buckets.map(b=>b[1]));
+      document.getElementById('diag-latency').innerHTML=buckets.map(([l,c])=>
+        `<div class="lat-bucket"><span class="lb-label">${l}</span><span class="lb-track"><span class="lb-fill" style="width:${c/maxB*100}%"></span></span><span>${c}</span></div>`).join('');
+
+      const errs=hist.filter(h=>!h.ok).slice().reverse();
+      document.getElementById('diag-errors').innerHTML=errs.length
+        ? errs.map(h=>`<div class="err-row">${new Date(h.t*1000).toLocaleTimeString()} — request failed after ${h.latency_ms}ms</div>`).join('')
+        : '<div class="empty">No errors recorded.</div>';
+    }
+
+    // ---------- network topology ----------
+    const netCv=document.getElementById('net-canvas');
+    function renderNetwork(d){
+      if(!netCv)return;
+      const skills=d.skills||[],devices=Object.entries(d.devices||{});
+      netCv.width=netCv.clientWidth*devicePixelRatio;netCv.height=280*devicePixelRatio;
+      const ctx=netCv.getContext('2d');const w=netCv.width,h=netCv.height,cx=w/2,cy=h/2,R=Math.min(w,h)*0.34;
+      ctx.clearRect(0,0,w,h);
+      const nodes=skills.map((s,i)=>({label:s,online:devices.some(([,dv])=>dv.domain===s),
+        x:cx+Math.cos(i/skills.length*Math.PI*2-Math.PI/2)*R,y:cy+Math.sin(i/skills.length*Math.PI*2-Math.PI/2)*R}));
+      // links
+      nodes.forEach(n=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(n.x,n.y);
+        ctx.strokeStyle=n.online?'rgba(47,240,224,.55)':'rgba(125,249,255,.18)';ctx.lineWidth=2*devicePixelRatio;ctx.stroke();});
+      // core node
+      const g=ctx.createRadialGradient(cx,cy,0,cx,cy,26*devicePixelRatio);g.addColorStop(0,'rgba(125,249,255,.9)');g.addColorStop(1,'rgba(30,200,255,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,26*devicePixelRatio,0,7);ctx.fill();
+      ctx.fillStyle='#020812';ctx.beginPath();ctx.arc(cx,cy,11*devicePixelRatio,0,7);ctx.fill();
+      ctx.strokeStyle='#1ec8ff';ctx.lineWidth=2*devicePixelRatio;ctx.stroke();
+      ctx.fillStyle='#7df9ff';ctx.font=(11*devicePixelRatio)+'px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('RUDRA',cx,cy+26*devicePixelRatio);
+      // skill nodes
+      nodes.forEach(n=>{const r=14*devicePixelRatio;
+        ctx.fillStyle=n.online?'rgba(47,240,224,.25)':'rgba(125,249,255,.1)';ctx.beginPath();ctx.arc(n.x,n.y,r,0,7);ctx.fill();
+        ctx.strokeStyle=n.online?'#2ff0e0':'rgba(125,249,255,.4)';ctx.lineWidth=2*devicePixelRatio;ctx.stroke();
+        ctx.fillStyle='#dff5ff';ctx.font=(10*devicePixelRatio)+'px ui-monospace,monospace';ctx.textAlign='center';
+        ctx.fillText(n.label,n.x,n.y+r+12*devicePixelRatio);});
+
+      document.getElementById('net-devices').innerHTML=devices.length
+        ? devices.map(([id,dv])=>`<div class="diag-row"><span><span class="diag-dot"></span>${id} <span style="color:var(--muted)">(${dv.domain})</span></span><b style="color:var(--orange2)">online</b></div>`).join('')
+        : '<div class="empty">No devices registered. Device commands run in stub mode until an agent connects.</div>';
+    }
 
     // ---------- suggestion chips ----------
     const SUGGESTIONS=[
@@ -616,7 +715,7 @@
     document.querySelectorAll('.quick-grid').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.qbtn');if(b&&b.dataset.cmd)send(b.dataset.cmd);}));
 
     // ---------- status ----------
-    async function refreshStatus(){try{const r=await fetch('/api/status');const d=await r.json();lastStatus=d;
+    async function refreshStatus(){try{const r=await fetch('/api/status');const d=await r.json();lastStatus=d;renderNetwork(d);
       const devices=Object.entries(d.devices||{}),skills=d.skills||[],caps=d.capabilities||[];
       document.getElementById('m-skills').textContent=skills.length;
       document.getElementById('m-devices').textContent=devices.length;
@@ -683,7 +782,7 @@
     connectLogWs();
 
     // ---------- view router ----------
-    const VIEW_NAMES={command:'Command Center',dashboard:'Dashboard',core:'AI Core',agents:'Agents',analytics:'Analytics',memory:'Memory',knowledge:'Knowledge Base',skills:'Tasks & Skills'};
+    const VIEW_NAMES={command:'Command Center',dashboard:'Dashboard',core:'AI Core',agents:'Agents',analytics:'Analytics',network:'Network',diagnostics:'Diagnostics',memory:'Memory',knowledge:'Knowledge Base',skills:'Tasks & Skills'};
     function goView(v){
       document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id==='view-'+v));
       document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));
