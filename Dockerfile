@@ -1,4 +1,6 @@
-# RUDRA brain — portable image so it runs on a PC, server, or Raspberry Pi.
+# RUDRA — portable image so it runs on a PC, server, Raspberry Pi, or a host
+# like Railway/Render/Fly. Serves the web dashboard + API by default; run
+# `python -m core.main` instead for the headless CLI/voice loop.
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -10,6 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App code.
 COPY core ./core
 COPY shared ./shared
+COPY server ./server
+COPY dashboard ./dashboard
 
-# The brain.
-CMD ["python", "-m", "core.main"]
+# Most hosts (Railway, Render, Fly) inject $PORT; default to 8080 locally.
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["sh", "-c", "uvicorn server.app:app --host 0.0.0.0 --port ${PORT}"]

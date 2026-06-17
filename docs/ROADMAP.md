@@ -85,6 +85,21 @@ Home Assistant — set `HA_URL`/`HA_TOKEN` and start `python agents/iot/agent.py
 *(Code complete + unit-tested via the simulator. A live flip needs real
 hardware — flash `rudra_node.ino` per `agents/esp32/README.md`.)*
 
+## Web dashboard  🟢 (built early, ahead of Phase 7)
+*Goal: a graphical way to use and check on RUDRA, not just the terminal.*
+- [x] `server/app.py` — FastAPI server reusing the same brain/bus/skills boot
+      sequence as `core.main`, exposed over HTTP + WebSocket.
+- [x] `dashboard/index.html` — chat panel, online devices, capabilities, live
+      log feed. No build step, no framework.
+- [x] `Dockerfile` now serves this by default (`docker-compose.yml` keeps a
+      separate headless `brain` service for the CLI/voice loop).
+- [x] `docs/DEPLOY.md` — steps to get a public URL (Railway recommended; Render
+      and Fly.io as alternatives).
+
+**Done when:** open a URL, type a command, see RUDRA reply — without a terminal.
+*(Code complete and tested locally over HTTP/WebSocket. Getting an actual
+public URL requires deploying to a host under your own account — see DEPLOY.md.)*
+
 ## Phase 6 — Phone
 *Goal: reach your phone.*
 - [ ] Android via Home Assistant Companion / Tasker recipes.

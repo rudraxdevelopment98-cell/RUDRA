@@ -15,10 +15,25 @@ services:
       - ./infra/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     restart: unless-stopped
 
-  # The brain — listens, thinks (Claude), and commands devices.
+  # The brain — listens, thinks (Claude), and commands devices (headless/CLI).
   brain:
     build: .
     container_name: rudra-brain
+    command: ["python", "-m", "core.main"]
+    depends_on:
+      - broker
+    env_file:
+      - .env
+    environment:
+      MQTT_HOST: broker
+    restart: unless-stopped
+
+  # The web dashboard + chat API — same brain, browser-facing.
+  web:
+    build: .
+    container_name: rudra-web
+    ports:
+      - "8080:8080"
     depends_on:
       - broker
     env_file:

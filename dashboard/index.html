@@ -5,31 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RUDRA — Command Center</title>
   <style>
-    :root { --bg:#0b0f17; --panel:#121826; --line:#1f2940; --text:#e6edf7; --muted:#8aa0c0; --accent:#5b8cff; }
+    :root {
+      --bg:#0b0f17; --panel:#121826; --panel2:#0e1626; --line:#1f2940;
+      --text:#e6edf7; --muted:#8aa0c0; --accent:#5b8cff; --accent2:#7fe7c4;
+      --danger:#ff6b6b; --warn:#f0b429;
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
-    header { padding:24px 28px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; }
-    .dot { width:12px; height:12px; border-radius:50%; background:#f0b429; box-shadow:0 0 12px #f0b429; }
-    h1 { font-size:20px; margin:0; letter-spacing:2px; }
+    body {
+      margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:radial-gradient(circle at 20% -10%, #131b2c 0%, var(--bg) 55%);
+      color:var(--text); min-height:100vh;
+    }
+    header {
+      padding:20px 28px; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; gap:14px; position:sticky; top:0;
+      background:rgba(11,15,23,0.9); backdrop-filter:blur(6px); z-index:10;
+    }
+    .dot { width:12px; height:12px; border-radius:50%; background:var(--warn); box-shadow:0 0 12px var(--warn); transition:.3s; }
+    .dot.online { background:var(--accent2); box-shadow:0 0 12px var(--accent2); }
+    .dot.offline { background:var(--danger); box-shadow:0 0 12px var(--danger); }
+    h1 { font-size:20px; margin:0; letter-spacing:3px; }
     .sub { color:var(--muted); font-size:13px; }
-    main { padding:28px; display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
-    .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
-    .card h2 { font-size:14px; color:var(--muted); margin:0 0 12px; text-transform:uppercase; letter-spacing:1px; }
-    .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#0e1626; border:1px solid var(--line); color:var(--muted); font-size:12px; margin:3px 4px 0 0; }
-    .log { font-family:ui-monospace,monospace; font-size:12px; color:var(--muted); white-space:pre-wrap; }
-    footer { padding:16px 28px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); }
+
+    main {
+      padding:24px; display:grid; gap:18px;
+      grid-template-columns: 1.4fr 1fr; max-width:1200px; margin:0 auto;
+    }
+    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px 20px; display:flex; flex-direction:column; }
+    .card h2 { font-size:13px; color:var(--muted); margin:0 0 12px; text-transform:uppercase; letter-spacing:1.5px; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:var(--panel2); border:1px solid var(--line); color:var(--muted); font-size:12px; margin:3px 4px 0 0; }
+    .pill.cap { color:var(--text); cursor:default; }
+    .mono { font-family:ui-monospace, "SF Mono", Consolas, monospace; }
+
+    /* Chat */
+    #chat-card { grid-row: span 2; min-height: 520px; }
+    #chat-log { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:4px 2px 12px; }
+    .msg { max-width:85%; padding:10px 14px; border-radius:12px; font-size:14px; line-height:1.45; white-space:pre-wrap; }
+    .msg.user { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:3px; }
+    .msg.rudra { align-self:flex-start; background:var(--panel2); border:1px solid var(--line); border-bottom-left-radius:3px; }
+    .msg.sys { align-self:center; color:var(--muted); font-size:12px; font-style:italic; }
+    #chat-form { display:flex; gap:10px; margin-top:10px; }
+    #chat-input {
+      flex:1; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+      padding:11px 14px; color:var(--text); font-size:14px; outline:none;
+    }
+    #chat-input:focus { border-color:var(--accent); }
+    #chat-form button {
+      background:var(--accent); color:#fff; border:none; border-radius:10px;
+      padding:0 20px; font-weight:600; cursor:pointer; font-size:14px;
+    }
+    #chat-form button:disabled { opacity:.5; cursor:default; }
+
+    /* Logs */
+    .log { font-family:ui-monospace,monospace; font-size:11.5px; color:var(--muted); white-space:pre-wrap; overflow-y:auto; max-height:220px; line-height:1.5; }
+
+    footer { padding:18px 28px; color:var(--muted); font-size:12px; text-align:center; }
+    footer code { color:var(--accent2); }
+    a { color: var(--accent2); }
   </style>
 </head>
 <body>
   <header>
-    <span class="dot" title="Phase 0 — skeleton"></span>
+    <span class="dot" id="conn-dot" title="connecting…"></span>
     <div>
       <h1>RUDRA</h1>
-      <div class="sub">voice-driven AI command center · Phase 0 (skeleton)</div>
+      <div class="sub" id="subtitle">voice-driven AI command center</div>
     </div>
   </header>
 
   <main>
+    <section class="card" id="chat-card">
+      <h2>Talk to RUDRA</h2>
+      <div id="chat-log"></div>
+      <form id="chat-form">
+        <input id="chat-input" type="text" placeholder="Type a command… e.g. 'what time is it?'" autocomplete="off" />
+        <button id="chat-send" type="submit">Send</button>
+      </form>
+    </section>
+
     <section class="card">
       <h2>Subsystems</h2>
       <span class="pill">🧠 brain</span><span class="pill">🔌 bus</span>
@@ -38,27 +93,126 @@
     </section>
 
     <section class="card">
-      <h2>Targets</h2>
-      <span class="pill">💻 PC</span><span class="pill">📱 phone</span>
-      <span class="pill">🏠 IoT</span><span class="pill">⚡ electronics</span>
-    </section>
-
-    <section class="card">
       <h2>Online devices</h2>
-      <div class="log" id="devices">— none yet (Phase 0) —</div>
+      <div class="log" id="devices">— none yet —</div>
     </section>
 
     <section class="card">
-      <h2>Bus activity</h2>
-      <div class="log" id="bus">Waiting for the brain… (live feed lands in Phase 7)</div>
+      <h2>Capabilities</h2>
+      <div id="capabilities">loading…</div>
+    </section>
+
+    <section class="card">
+      <h2>Live log</h2>
+      <div class="log" id="bus-log">connecting…</div>
     </section>
   </main>
 
   <footer>
-    This is a static placeholder. Phase 7 wires it to the brain's WebSocket /
-    MQTT-over-WS for a live view. See <code>docs/ROADMAP.md</code>.
+    RUDRA — built phase by phase. See <code>docs/ROADMAP.md</code> on
+    <a href="https://github.com/rudraxdevelopment98-cell/rudra" target="_blank" rel="noopener">GitHub</a>.
   </footer>
 
-  <!-- TODO(Phase 7): connect to the brain and render live devices + bus traffic. -->
+  <script>
+    const dot = document.getElementById('conn-dot');
+    const subtitle = document.getElementById('subtitle');
+    const chatLog = document.getElementById('chat-log');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatSend = document.getElementById('chat-send');
+    const devicesEl = document.getElementById('devices');
+    const capsEl = document.getElementById('capabilities');
+    const busLogEl = document.getElementById('bus-log');
+
+    function addMsg(role, text) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.textContent = text;
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    addMsg('sys', 'Connecting to RUDRA…');
+
+    // --- chat over WebSocket, falls back to REST if the socket can't open ---
+    const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+    let chatWs = null;
+    let wsReady = false;
+
+    function connectChatWs() {
+      chatWs = new WebSocket(`${wsProto}://${location.host}/ws/chat`);
+      chatWs.onopen = () => { wsReady = true; dot.className = 'dot online'; subtitle.textContent = 'online'; };
+      chatWs.onclose = () => { wsReady = false; dot.className = 'dot offline'; subtitle.textContent = 'disconnected — retrying…'; setTimeout(connectChatWs, 2000); };
+      chatWs.onerror = () => {};
+      chatWs.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'reply') {
+          addMsg('rudra', msg.text || '…');
+          chatSend.disabled = false;
+        }
+      };
+    }
+    connectChatWs();
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+      addMsg('user', text);
+      chatInput.value = '';
+      chatSend.disabled = true;
+      if (wsReady) {
+        chatWs.send(text);
+      } else {
+        try {
+          const res = await fetch('/api/chat', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+          });
+          const data = await res.json();
+          addMsg('rudra', data.reply || '…');
+        } catch (err) {
+          addMsg('sys', 'Could not reach RUDRA: ' + err);
+        } finally {
+          chatSend.disabled = false;
+        }
+      }
+    });
+
+    // --- status polling: devices + capabilities ---
+    async function refreshStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const devices = Object.entries(data.devices || {});
+        devicesEl.textContent = devices.length
+          ? devices.map(([id, d]) => `${id}  (${d.domain})`).join('\n')
+          : '— none online —';
+        capsEl.innerHTML = (data.capabilities || [])
+          .map(c => `<span class="pill cap" title="${c.description}">${c.name}</span>`)
+          .join('');
+      } catch (err) { /* server may still be booting */ }
+    }
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+
+    // --- live log feed ---
+    function connectLogWs() {
+      const ws = new WebSocket(`${wsProto}://${location.host}/ws/logs`);
+      let lines = [];
+      ws.onopen = () => { busLogEl.textContent = ''; };
+      ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'log') {
+          lines.push(msg.line);
+          if (lines.length > 60) lines.shift();
+          busLogEl.textContent = lines.join('\n');
+          busLogEl.scrollTop = busLogEl.scrollHeight;
+        }
+      };
+      ws.onclose = () => setTimeout(connectLogWs, 2000);
+    }
+    connectLogWs();
+  </script>
 </body>
 </html>
