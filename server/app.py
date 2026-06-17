@@ -142,6 +142,14 @@ async def logs() -> dict:
     return {"lines": list(log_broadcaster.buffer)}
 
 
+@app.get("/api/memory")
+async def memory_turns() -> dict:
+    """Recent conversation turns, for the dashboard's Memory view."""
+    memory: Memory = state["memory"]
+    turns = await memory.recent_turns(limit=40)
+    return {"turns": turns}
+
+
 @app.websocket("/ws/chat")
 async def ws_chat(ws: WebSocket) -> None:
     await ws.accept()
