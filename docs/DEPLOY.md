@@ -12,8 +12,12 @@ the easiest path — free tier, deploys straight from GitHub, no CLI required.
 3. Set the branch to deploy (e.g. `claude/vigilant-euler-o3s70q`, or `main` once merged).
 4. Railway detects the `Dockerfile` automatically — no build config needed.
 5. Add environment variables (**Variables** tab):
-   - `ANTHROPIC_API_KEY` — required, or chat will reply with a warning instead of thinking.
-   - `RUDRA_NAME`, `RUDRA_MODEL` — optional, defaults are fine.
+   - `GEMINI_API_KEY` — required (default provider, free tier). Get one at
+     [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey).
+     Without it chat replies with a warning instead of thinking.
+   - `RUDRA_NAME` — optional, default is fine.
+   - To switch back to Claude later: set `RUDRA_LLM_PROVIDER=anthropic` and
+     `ANTHROPIC_API_KEY` instead (`RUDRA_MODEL` picks the Claude model).
    - Leave `MQTT_HOST` unset — with no broker reachable the bus runs in stub
      mode automatically, so PC/IoT/electronics commands log "dispatched"
      instead of crashing. (Those need a broker + agent reachable from the

@@ -20,9 +20,12 @@ class Config:
     wake_word: str = field(default_factory=lambda: _env("RUDRA_WAKE_WORD", "rudra"))
     name: str = field(default_factory=lambda: _env("RUDRA_NAME", "Rudra"))
 
-    # --- Brain (Claude LLM) ---
+    # --- Brain (LLM) ---
+    llm_provider: str = field(default_factory=lambda: _env("RUDRA_LLM_PROVIDER", "gemini"))
     anthropic_api_key: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
     model: str = field(default_factory=lambda: _env("RUDRA_MODEL", "claude-opus-4-8"))
+    gemini_api_key: str = field(default_factory=lambda: _env("GEMINI_API_KEY"))
+    gemini_model: str = field(default_factory=lambda: _env("RUDRA_GEMINI_MODEL", "gemini-2.0-flash"))
 
     # --- MQTT bus ---
     mqtt_host: str = field(default_factory=lambda: _env("MQTT_HOST", "localhost"))
@@ -51,7 +54,9 @@ class Config:
     def validate(self) -> list[str]:
         """Return a list of human-readable warnings about missing config."""
         warnings: list[str] = []
-        if not self.anthropic_api_key:
+        if self.llm_provider == "gemini" and not self.gemini_api_key:
+            warnings.append("GEMINI_API_KEY is not set — the brain cannot think yet.")
+        elif self.llm_provider == "anthropic" and not self.anthropic_api_key:
             warnings.append("ANTHROPIC_API_KEY is not set — the brain cannot think yet.")
         if self.voice_enabled and self.tts_engine == "elevenlabs" and not self.tts_api_key:
             warnings.append("TTS_API_KEY is not set — cloud voice replies are disabled.")

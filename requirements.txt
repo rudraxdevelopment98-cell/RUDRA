@@ -4,7 +4,8 @@
 # Uncomment as we implement, or install the lot to develop ahead.
 
 # --- Phase 1: brain ---  (in use)
-anthropic>=0.40          # Claude API client — the brain
+anthropic>=0.40          # Claude API client — the brain (provider: anthropic)
+google-generativeai>=0.8 # Gemini API client — the brain (provider: gemini, default — free tier)
 # memory uses the stdlib sqlite3, no dependency needed.
 
 # --- Bus (wired in Phase 3) ---  (in use)
