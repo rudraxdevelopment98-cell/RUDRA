@@ -17,9 +17,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 from collections import deque
 from contextlib import asynccontextmanager
 
+import psutil
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -66,6 +68,50 @@ class LogBroadcaster(logging.Handler):
 log_broadcaster = LogBroadcaster()
 
 
+class Metrics:
+    """Tracks real activity so the dashboard isn't showing fake numbers."""
+
+    def __init__(self, maxlen: int = 120):
+        self.start = time.monotonic()
+        self.requests = 0
+        self.chat_messages = 0
+        self.errors = 0
+        self.ws_connections = 0
+        self.latencies_ms: deque[float] = deque(maxlen=maxlen)
+        self.history: deque[dict] = deque(maxlen=maxlen)
+        self.per_skill: dict[str, int] = {}
+
+    def record_chat(self, latency_ms: float, ok: bool, skill_hint: str | None = None) -> None:
+        self.chat_messages += 1
+        if not ok:
+            self.errors += 1
+        self.latencies_ms.append(latency_ms)
+        self.history.append({"t": time.time(), "latency_ms": round(latency_ms, 1), "ok": ok})
+        if skill_hint:
+            self.per_skill[skill_hint] = self.per_skill.get(skill_hint, 0) + 1
+
+    def snapshot(self) -> dict:
+        process = psutil.Process()
+        latencies = list(self.latencies_ms)
+        avg_latency = sum(latencies) / len(latencies) if latencies else 0.0
+        return {
+            "uptime_s": round(time.monotonic() - self.start, 1),
+            "cpu_percent": psutil.cpu_percent(interval=None),
+            "mem_percent": psutil.virtual_memory().percent,
+            "process_mem_mb": round(process.memory_info().rss / (1024 * 1024), 1),
+            "requests": self.requests,
+            "chat_messages": self.chat_messages,
+            "errors": self.errors,
+            "ws_connections": self.ws_connections,
+            "avg_latency_ms": round(avg_latency, 1),
+            "history": list(self.history)[-40:],
+            "per_skill": self.per_skill,
+        }
+
+
+metrics = Metrics()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log_broadcaster.setFormatter(logging.Formatter(
@@ -99,6 +145,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="RUDRA", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def count_requests(request, call_next):
+    metrics.requests += 1
+    return await call_next(request)
+
+
 class ChatRequest(BaseModel):
     text: str
 
@@ -110,11 +162,14 @@ class ChatResponse(BaseModel):
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest) -> ChatResponse:
     orchestrator: Orchestrator = state["orchestrator"]
+    started = time.monotonic()
     try:
         reply = await orchestrator.handle(req.text)
     except Exception as exc:  # noqa: BLE001 — never let a brain error kill the request
         log.exception("chat failed")
+        metrics.record_chat((time.monotonic() - started) * 1000, ok=False)
         return ChatResponse(reply=f"⚠ {exc}")
+    metrics.record_chat((time.monotonic() - started) * 1000, ok=True)
     return ChatResponse(reply=reply)
 
 
@@ -137,6 +192,12 @@ async def status() -> dict:
     }
 
 
+@app.get("/api/metrics")
+async def get_metrics() -> dict:
+    """Real process/usage metrics for the dashboard's analytics charts."""
+    return metrics.snapshot()
+
+
 @app.get("/api/logs")
 async def logs() -> dict:
     return {"lines": list(log_broadcaster.buffer)}
@@ -154,17 +215,24 @@ async def memory_turns() -> dict:
 async def ws_chat(ws: WebSocket) -> None:
     await ws.accept()
     orchestrator: Orchestrator = state["orchestrator"]
+    metrics.ws_connections += 1
     try:
         while True:
             text = await ws.receive_text()
+            started = time.monotonic()
             try:
                 reply = await orchestrator.handle(text)
             except Exception as exc:  # noqa: BLE001 — never let a brain error kill the socket
                 log.exception("ws chat failed")
                 reply = f"⚠ {exc}"
+                metrics.record_chat((time.monotonic() - started) * 1000, ok=False)
+            else:
+                metrics.record_chat((time.monotonic() - started) * 1000, ok=True)
             await ws.send_json({"type": "reply", "text": reply})
     except WebSocketDisconnect:
         pass
+    finally:
+        metrics.ws_connections = max(0, metrics.ws_connections - 1)
 
 
 @app.websocket("/ws/logs")

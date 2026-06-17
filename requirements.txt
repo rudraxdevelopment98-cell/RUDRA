@@ -14,6 +14,7 @@ aiomqtt>=2.0             # async MQTT client (brain falls back to a stub if abse
 # --- Web dashboard / API (server/app.py) ---  (in use)
 fastapi>=0.110
 uvicorn[standard]>=0.29   # 'standard' pulls in websockets, needed for /ws/chat and /ws/logs
+psutil>=5.9               # real CPU/memory metrics for the dashboard's /api/metrics
 
 # --- Phase 2: voice (hybrid) ---  (in use)
 openwakeword>=0.6        # local wake word

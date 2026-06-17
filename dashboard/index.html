@@ -165,6 +165,19 @@
     .skill-block{margin-bottom:16px;} .skill-block .sb-title{font-size:13px;color:var(--orange2);font-weight:700;margin-bottom:6px;text-transform:capitalize;}
     .tool-pill{display:inline-block;background:rgba(10,30,50,.6);border:1px solid var(--line);border-radius:9px;padding:7px 11px;margin:3px 5px 0 0;font-size:12px;}
     .tool-pill b{color:var(--orange2);}
+    .an-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-bottom:14px;}
+    .chart-cv{width:100%;height:160px;display:block;}
+    .data-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+    .data-tbl th{text-align:left;color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line);}
+    .data-tbl td{padding:7px 8px;border-bottom:1px solid var(--line);font-family:ui-monospace,monospace;}
+    .data-tbl tr:last-child td{border-bottom:none;}
+    .data-tbl .ok{color:var(--teal);} .data-tbl .bad{color:var(--danger);}
+    .skill-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px;}
+    .skill-bar-row .sb-label{width:90px;color:var(--muted);text-transform:capitalize;flex-shrink:0;}
+    .skill-bar-row .sb-track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;}
+    .skill-bar-row .sb-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--orange2));}
+    .skill-bar-row .sb-count{width:30px;text-align:right;font-family:ui-monospace,monospace;color:var(--orange2);}
+    @media (max-width:900px){.an-grid{grid-template-columns:1fr;}}
     .mem-turn{padding:10px 14px;border-radius:11px;margin-bottom:8px;font-size:13.5px;line-height:1.5;max-width:75%;white-space:pre-wrap;}
     .mem-turn.user{background:linear-gradient(135deg,var(--orange),#0a7fcc);color:#fff;margin-left:auto;}
     .mem-turn.assistant{background:rgba(8,26,44,.8);border:1px solid var(--line2);}
@@ -221,6 +234,7 @@
         <a data-view="dashboard"><span class="ico">▦</span> Dashboard</a>
         <a data-view="core"><span class="ico">◉</span> AI Core</a>
         <a data-view="agents"><span class="ico">⬡</span> Agents</a>
+        <a data-view="analytics"><span class="ico">📈</span> Analytics</a>
         <a data-view="memory"><span class="ico">▤</span> Memory</a>
         <a data-view="knowledge"><span class="ico">❖</span> Knowledge Base</a>
         <a data-view="skills"><span class="ico">✦</span> Tasks &amp; Skills</a>
@@ -306,6 +320,33 @@
         <div class="list-card"><div class="agent-list" id="agents-full"></div></div>
       </div>
 
+      <!-- ANALYTICS -->
+      <div class="view" id="view-analytics">
+        <div class="page-head"><h1>Analytics</h1><p>Real process metrics — no simulated data.</p></div>
+        <div class="grid-cards" id="metrics-cards"></div>
+        <div class="an-grid">
+          <div class="list-card">
+            <h3>CPU &amp; memory (live)</h3>
+            <canvas id="chart-cpu" class="chart-cv"></canvas>
+          </div>
+          <div class="list-card">
+            <h3>Chat latency (ms)</h3>
+            <canvas id="chart-latency" class="chart-cv"></canvas>
+          </div>
+        </div>
+        <div class="list-card">
+          <h3>Requests by skill</h3>
+          <div id="skill-usage"><div class="empty">No requests yet.</div></div>
+        </div>
+        <div class="list-card">
+          <h3>Recent chat turns</h3>
+          <table class="data-tbl" id="req-table">
+            <thead><tr><th>Time</th><th>Latency</th><th>Result</th></tr></thead>
+            <tbody><tr><td colspan="3" class="empty">No data yet.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- MEMORY -->
       <div class="view" id="view-memory">
         <div class="page-head"><h1>Memory</h1><p>Recent conversation RUDRA remembers.</p></div>
@@ -387,7 +428,6 @@
         ctx.fillText(Math.round(shown*100)+'%',c,c);requestAnimationFrame(f);}f();
       return{set(v){val=Math.max(0,Math.min(1,v));}};}
     const gCpu=makeGauge('g-cpu'),gMem=makeGauge('g-mem'),gNet=makeGauge('g-net');
-    setInterval(()=>{gCpu.set(0.18+Math.random()*0.25);gMem.set(0.3+Math.random()*0.2);},2600);
 
     // ---------- waveform ----------
     const wave=(function(){const cv=document.getElementById('wave'),ctx=cv.getContext('2d');let amp=.06,tgt=.06,t=0;
@@ -495,6 +535,55 @@
       addEventListener('resize',rs);rs();f();
       return{bump(v){data.push(Math.min(1,(v||0.8)));data.shift();}};})();
 
+    // ---------- analytics: real metrics (no Math.random) ----------
+    function makeLineChart(id){const cv=document.getElementById(id);if(!cv)return null;const ctx=cv.getContext('2d');
+      function rs(){cv.width=cv.clientWidth*devicePixelRatio;cv.height=cv.clientHeight*devicePixelRatio;}
+      addEventListener('resize',rs);rs();
+      return{draw(series){ // series: [{data:[...numbers],color}]
+        rs();const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);
+        const max=Math.max(1,...series.flatMap(s=>s.data));
+        series.forEach(s=>{const d=s.data;if(!d.length)return;const step=w/Math.max(1,d.length-1);
+          ctx.beginPath();d.forEach((v,i)=>{const x=i*step,y=h-(v/max)*h*0.9-h*0.05;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+          ctx.strokeStyle=s.color;ctx.lineWidth=2*devicePixelRatio;ctx.stroke();});
+      }};}
+    const cpuMemChart=makeLineChart('chart-cpu'),latencyChart=makeLineChart('chart-latency');
+    let cpuHist=[],memHist=[],latHist=[];
+    async function refreshMetrics(){try{const r=await fetch('/api/metrics');const m=await r.json();
+      gCpu.set(m.cpu_percent/100);gMem.set(m.mem_percent/100);
+      gNet.set(wsReady?Math.max(0.15,Math.min(1,m.ws_connections/3+0.3)):0.05);
+      activity.bump(Math.min(1,m.chat_messages%10/10+0.1));
+
+      cpuHist.push(m.cpu_percent);if(cpuHist.length>60)cpuHist.shift();
+      memHist.push(m.mem_percent);if(memHist.length>60)memHist.shift();
+      cpuMemChart&&cpuMemChart.draw([{data:cpuHist,color:'#1ec8ff'},{data:memHist,color:'#7df9ff'}]);
+
+      const hist=m.history||[];
+      latencyChart&&latencyChart.draw([{data:hist.map(h=>h.latency_ms),color:'#37b8ff'}]);
+
+      document.getElementById('metrics-cards').innerHTML=[
+        {ico:'⏱',val:Math.round(m.uptime_s)+'s',lbl:'Uptime'},
+        {ico:'⚙',val:m.cpu_percent.toFixed(1)+'%',lbl:'CPU usage'},
+        {ico:'💾',val:m.mem_percent.toFixed(1)+'%',lbl:'Memory usage'},
+        {ico:'📦',val:m.process_mem_mb+' MB',lbl:'Process RSS'},
+        {ico:'💬',val:m.chat_messages,lbl:'Chat messages'},
+        {ico:'🌐',val:m.requests,lbl:'HTTP requests'},
+        {ico:'⚡',val:m.avg_latency_ms+' ms',lbl:'Avg latency'},
+        {ico:'🔌',val:m.ws_connections,lbl:'Live sockets'},
+      ].map(t=>`<div class="big-tile"><div class="ico">${t.ico}</div><div class="val">${t.val}</div><div class="lbl">${t.lbl}</div></div>`).join('');
+
+      const skills=Object.entries(m.per_skill||{});
+      const maxCount=Math.max(1,...skills.map(([,c])=>c));
+      document.getElementById('skill-usage').innerHTML=skills.length
+        ? skills.map(([k,c])=>`<div class="skill-bar-row"><span class="sb-label">${k}</span><span class="sb-track"><span class="sb-fill" style="width:${c/maxCount*100}%"></span></span><span class="sb-count">${c}</span></div>`).join('')
+        : '<div class="empty">No requests yet.</div>';
+
+      const rows=hist.slice().reverse().slice(0,15);
+      document.getElementById('req-table').querySelector('tbody').innerHTML=rows.length
+        ? rows.map(h=>`<tr><td>${new Date(h.t*1000).toLocaleTimeString()}</td><td>${h.latency_ms} ms</td><td class="${h.ok?'ok':'bad'}">${h.ok?'ok':'error'}</td></tr>`).join('')
+        : '<tr><td colspan="3" class="empty">No data yet.</td></tr>';
+    }catch(err){}}
+    refreshMetrics();setInterval(refreshMetrics,3000);
+
     // ---------- suggestion chips ----------
     const SUGGESTIONS=[
       {ic:'🕒',t:'What time is it?'},{ic:'📊',t:'What is your status?'},
@@ -594,7 +683,7 @@
     connectLogWs();
 
     // ---------- view router ----------
-    const VIEW_NAMES={command:'Command Center',dashboard:'Dashboard',core:'AI Core',agents:'Agents',memory:'Memory',knowledge:'Knowledge Base',skills:'Tasks & Skills'};
+    const VIEW_NAMES={command:'Command Center',dashboard:'Dashboard',core:'AI Core',agents:'Agents',analytics:'Analytics',memory:'Memory',knowledge:'Knowledge Base',skills:'Tasks & Skills'};
     function goView(v){
       document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id==='view-'+v));
       document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));
