@@ -25,7 +25,7 @@ class Config:
     anthropic_api_key: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
     model: str = field(default_factory=lambda: _env("RUDRA_MODEL", "claude-opus-4-8"))
     gemini_api_key: str = field(default_factory=lambda: _env("GEMINI_API_KEY"))
-    gemini_model: str = field(default_factory=lambda: _env("RUDRA_GEMINI_MODEL", "gemini-2.0-flash"))
+    gemini_model: str = field(default_factory=lambda: _env("RUDRA_GEMINI_MODEL", "gemini-2.5-flash"))
 
     # --- MQTT bus ---
     mqtt_host: str = field(default_factory=lambda: _env("MQTT_HOST", "localhost"))

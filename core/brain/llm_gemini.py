@@ -96,7 +96,16 @@ class GeminiLLM:
         used: list[dict] = []
 
         for _ in range(MAX_TOOL_ROUNDS):
-            resp = await model.generate_content_async(contents)
+            try:
+                resp = await model.generate_content_async(contents)
+            except Exception as exc:  # noqa: BLE001 — translate Google's quota errors to a clear message
+                if "429" in str(exc) or "quota" in str(exc).lower():
+                    raise RuntimeError(
+                        f"Gemini quota exceeded for model '{self.config.gemini_model}'. "
+                        "Either enable billing on the Google AI Studio project, or set "
+                        "RUDRA_GEMINI_MODEL to a model with free quota left, then redeploy."
+                    ) from exc
+                raise
             candidate = resp.candidates[0]
             parts = candidate.content.parts
             function_calls = [p.function_call for p in parts if p.function_call]
