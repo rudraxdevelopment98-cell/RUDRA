@@ -17,6 +17,9 @@ COPY dashboard ./dashboard
 
 # Most hosts (Railway, Render, Fly) inject $PORT; default to 8080 locally.
 ENV PORT=8080
+# Unbuffered stdout so crash tracebacks actually reach the host's log stream
+# instead of sitting in a buffer that's never flushed.
+ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 
 CMD ["sh", "-c", "uvicorn server.app:app --host 0.0.0.0 --port ${PORT}"]
