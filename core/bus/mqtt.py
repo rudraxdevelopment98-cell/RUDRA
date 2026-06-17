@@ -65,11 +65,16 @@ class Bus:
             self._connected = True
             return
 
+        tls_params = None
+        if self.config.mqtt_tls:
+            tls_params = aiomqtt.TLSParameters()
+
         client = aiomqtt.Client(
             hostname=self.config.mqtt_host,
             port=self.config.mqtt_port,
             username=self.config.mqtt_username or None,
             password=self.config.mqtt_password or None,
+            tls_params=tls_params,
         )
         try:
             await client.__aenter__()

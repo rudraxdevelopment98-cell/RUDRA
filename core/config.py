@@ -32,6 +32,7 @@ class Config:
     mqtt_port: int = field(default_factory=lambda: int(_env("MQTT_PORT", "1883")))
     mqtt_username: str = field(default_factory=lambda: _env("MQTT_USERNAME"))
     mqtt_password: str = field(default_factory=lambda: _env("MQTT_PASSWORD"))
+    mqtt_tls: bool = field(default_factory=lambda: _env("MQTT_TLS", "false").lower() == "true")
 
     # --- Voice (hybrid: local wake/STT, cloud TTS) ---
     voice_enabled: bool = field(default_factory=lambda: _env("RUDRA_VOICE_ENABLED", "false").lower() == "true")

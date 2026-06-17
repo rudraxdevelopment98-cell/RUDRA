@@ -60,3 +60,37 @@ Or with Docker Compose (also starts the MQTT broker for device commands):
 docker compose up
 # web dashboard: http://localhost:8080
 ```
+
+## Connecting real devices (shared MQTT broker)
+
+The brain (deployed on Railway) and your device agents (PC agent, IoT bridge,
+ESP32 nodes) only talk to each other if they're all pointed at the **same**
+MQTT broker. Without one, the bus runs in stub mode — chat works, but device
+commands just get logged as "dispatched" and nothing happens.
+
+**Recommended: HiveMQ Cloud (free tier, no server to run)**
+
+1. Go to [hivemq.com/mqtt-cloud-broker](https://www.hivemq.com/mqtt-cloud-broker/)
+   and create a free **Serverless** cluster.
+2. In the cluster's **Access Management**, create credentials (username + password).
+3. Copy the cluster's hostname (looks like `xxxxx.s1.eu.hivemq.cloud`) — TLS
+   port is always **8883**.
+4. On Railway (the brain), set these variables:
+   ```
+   MQTT_HOST=xxxxx.s1.eu.hivemq.cloud
+   MQTT_PORT=8883
+   MQTT_TLS=true
+   MQTT_USERNAME=<your username>
+   MQTT_PASSWORD=<your password>
+   ```
+5. Redeploy. The log should show `🔌 bus connected → mqtt://...` instead of
+   "stub mode".
+6. On each machine running a device agent (your PC, an IoT bridge, etc.), set
+   the same four `MQTT_*` variables (e.g. in a local `.env`) and start the
+   agent — see `agents/pc-agent/README.md`, `agents/iot/README.md`,
+   `agents/esp32/README.md`.
+
+Once the brain and an agent share a broker, the agent's `register` message
+makes the device show up in the dashboard's "Connected devices" list, and
+commands like "open Chrome" or "turn off the bedroom lights" actually reach
+it instead of just logging.
