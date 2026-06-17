@@ -114,6 +114,18 @@
       background:linear-gradient(90deg,#7df9ff,#fff,#00e5ff);background-size:200%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 5s linear infinite;}
     @keyframes shine{to{background-position:200%}}
     .av-tag{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+    .wake-pill{margin-top:9px;display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);
+      background:rgba(8,26,44,.6);border:1px solid var(--line);border-radius:999px;padding:4px 12px;letter-spacing:.5px;}
+    .wake-pill .wd{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:.2s;}
+    .wake-pill.on{color:var(--orange2);border-color:var(--line2);}
+    .wake-pill.on .wd{background:var(--orange);box-shadow:0 0 10px var(--orange);animation:bp 1.4s infinite;}
+    .wake-pill.hot{color:#fff;border-color:var(--teal);} .wake-pill.hot .wd{background:var(--teal);box-shadow:0 0 12px var(--teal);}
+    .activity{width:100%;height:40px;margin-top:10px;display:block;}
+    .suggest{display:flex;flex-wrap:wrap;gap:7px;padding:0 2px 10px;}
+    .schip{font-size:12px;color:var(--orange2);background:rgba(0,200,255,.08);border:1px solid var(--line);
+      border-radius:999px;padding:6px 12px;cursor:pointer;transition:.15s;}
+    .schip:hover{background:rgba(0,200,255,.16);border-color:var(--line2);transform:translateY(-1px);}
+    .schip .s-ic{opacity:.8;margin-right:5px;}
     #chat-log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:11px;padding:4px 2px 10px;}
     #chat-log::-webkit-scrollbar{width:5px;}#chat-log::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px;}
     .msg{max-width:88%;padding:10px 14px;border-radius:13px;font-size:14px;line-height:1.5;white-space:pre-wrap;animation:rise .26s ease-out;}
@@ -254,7 +266,10 @@
             <div class="avatar"><canvas id="avatar-canvas" width="260" height="260" style="width:130px;height:130px"></canvas></div>
             <div class="av-name">R U D R A</div>
             <div class="av-tag">Realtime Unified Digital Response Assistant</div>
+            <div class="wake-pill" id="wake-pill"><span class="wd"></span><span id="wake-text">wake word off</span></div>
+            <canvas id="activity" class="activity"></canvas>
           </div>
+          <div class="suggest" id="suggest"></div>
           <div id="chat-log"></div>
         </div>
         <div class="panel feed">
@@ -313,9 +328,10 @@
     <!-- DOCK -->
     <footer class="dock">
       <button type="button" class="talk-btn" id="mic-btn">🎙️ <span>TALK TO RUDRA</span></button>
+      <button type="button" class="talk-btn" id="wake-btn" title="Listen for the wake word 'Rudra'">👂 <span>WAKE WORD</span></button>
       <canvas id="wave"></canvas>
       <form id="chat-form">
-        <input id="chat-input" type="text" placeholder="Type or speak a command…" autocomplete="off" />
+        <input id="chat-input" type="text" placeholder="Type or say &quot;Rudra…&quot;" autocomplete="off" />
         <label class="toggle"><input type="checkbox" id="voice-toggle" checked /> speak</label>
         <button id="chat-send" type="submit">Send</button>
       </form>
@@ -405,15 +421,93 @@
     function hideThinking(){if(thinkingEl){thinkingEl.remove();thinkingEl=null;}}
 
     function speak(text){if(!voiceToggle.checked||!text||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(text);u.rate=1.02;u.pitch=.95;u.onboundary=()=>wave.spike(.5);u.onstart=()=>wave.spike(.8);window.speechSynthesis.speak(u);}
+      const u=new SpeechSynthesisUtterance(text);u.rate=1.02;u.pitch=.95;
+      u.onstart=()=>{speaking=true;wave.spike(.8);};u.onboundary=()=>wave.spike(.5);
+      u.onend=()=>{speaking=false;};window.speechSynthesis.speak(u);}
 
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let recog=null,listening=false;
-    if(SR){recog=new SR();recog.lang='en-US';recog.interimResults=false;recog.maxAlternatives=1;
+    // ---------- speech: push-to-talk + "Rudra" wake word ----------
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    const wakeBtn=document.getElementById('wake-btn'),wakePill=document.getElementById('wake-pill'),wakeText=document.getElementById('wake-text');
+    let recog=null;            // push-to-talk (one-shot)
+    let wakeRecog=null;        // continuous wake listener
+    let listening=false, wakeOn=false, armed=false, armTimer=null, speaking=false;
+    const WAKE_RE=/\b(rudra|rudhra|rudro|rudrah|ruddha)\b/i;
+
+    function setWakePill(state,label){wakePill.className='wake-pill'+(state?' '+state:'');wakeText.textContent=label;}
+
+    if(SR){
+      // one-shot mic
+      recog=new SR();recog.lang='en-US';recog.interimResults=false;recog.maxAlternatives=1;
       recog.onresult=e=>{chatInput.value=e.results[0][0].transcript;chatForm.requestSubmit();};
       recog.onaudiostart=()=>wave.spike(.7);recog.onspeechstart=()=>wave.spike(.9);
-      recog.onend=()=>{listening=false;micBtn.classList.remove('active');};recog.onerror=()=>{listening=false;micBtn.classList.remove('active');};
-      micBtn.addEventListener('click',()=>{if(listening){recog.stop();return;}window.speechSynthesis.cancel();listening=true;micBtn.classList.add('active');recog.start();});
-    }else{micBtn.style.opacity=.5;micBtn.title='Voice input not supported here';}
+      recog.onend=()=>{listening=false;micBtn.classList.remove('active');};
+      recog.onerror=()=>{listening=false;micBtn.classList.remove('active');};
+      micBtn.addEventListener('click',()=>{if(listening){recog.stop();return;}
+        window.speechSynthesis.cancel();listening=true;micBtn.classList.add('active');try{recog.start();}catch(e){}});
+
+      // continuous wake listener
+      wakeRecog=new SR();wakeRecog.lang='en-US';wakeRecog.continuous=true;wakeRecog.interimResults=true;wakeRecog.maxAlternatives=1;
+      wakeRecog.onresult=e=>{
+        if(speaking)return;                       // ignore RUDRA's own voice
+        const res=e.results[e.results.length-1];
+        if(!res.isFinal)return;
+        let said=res[0].transcript.trim();wave.spike(.7);
+        const m=said.match(WAKE_RE);
+        if(armed){ // already greeted, treat this whole utterance as the command
+          clearTimeout(armTimer);armed=false;setWakePill('on','listening for “Rudra”');
+          const cmd=said.replace(WAKE_RE,'').trim();if(cmd)send(cmd);return;
+        }
+        if(m){
+          const cmd=said.slice(said.toLowerCase().indexOf(m[0].toLowerCase())+m[0].length).replace(/^[\s,.:!?]+/,'').trim();
+          setWakePill('hot','heard “Rudra”');
+          if(cmd){send(cmd);setTimeout(()=>wakeOn&&setWakePill('on','listening for “Rudra”'),1200);}
+          else{speak('Yes?');armed=true;clearTimeout(armTimer);armTimer=setTimeout(()=>{armed=false;wakeOn&&setWakePill('on','listening for “Rudra”');},6000);}
+        }
+      };
+      wakeRecog.onend=()=>{if(wakeOn){try{wakeRecog.start();}catch(e){}}};   // auto-restart
+      wakeRecog.onerror=ev=>{if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){wakeOn=false;wakeBtn.classList.remove('active');setWakePill('','mic blocked');}};
+
+      wakeBtn.addEventListener('click',()=>{
+        wakeOn=!wakeOn;wakeBtn.classList.toggle('active',wakeOn);
+        if(wakeOn){try{wakeRecog.start();}catch(e){}setWakePill('on','listening for “Rudra”');addMsg('sys','Wake word on — say “Rudra, …”');}
+        else{try{wakeRecog.stop();}catch(e){}setWakePill('','wake word off');}
+      });
+    }else{micBtn.style.opacity=.5;micBtn.title='Voice input not supported here';wakeBtn.style.opacity=.5;wakeBtn.title='Voice not supported here';}
+
+    // ---------- realtime activity sparkline ----------
+    const activity=(function(){const cv=document.getElementById('activity');const ctx=cv.getContext('2d');
+      let data=new Array(60).fill(0);
+      function rs(){cv.width=cv.clientWidth*devicePixelRatio;cv.height=40*devicePixelRatio;}
+      function f(){const w=cv.width,h=cv.height;ctx.clearRect(0,0,w,h);
+        // baseline shimmer + decay
+        for(let i=0;i<data.length;i++)data[i]*=0.94;
+        data[data.length-1]=Math.max(data[data.length-1],0.06+Math.random()*0.05);
+        const step=w/(data.length-1);
+        const g=ctx.createLinearGradient(0,0,w,0);g.addColorStop(0,'#1ec8ff');g.addColorStop(1,'#7df9ff');
+        // fill
+        ctx.beginPath();ctx.moveTo(0,h);
+        data.forEach((v,i)=>ctx.lineTo(i*step,h-v*h*0.9));
+        ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle='rgba(30,200,255,.08)';ctx.fill();
+        // line
+        ctx.beginPath();data.forEach((v,i)=>{const x=i*step,y=h-v*h*0.9;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+        ctx.strokeStyle=g;ctx.lineWidth=2*devicePixelRatio;ctx.stroke();
+        requestAnimationFrame(f);}
+      addEventListener('resize',rs);rs();f();
+      return{bump(v){data.push(Math.min(1,(v||0.8)));data.shift();}};})();
+
+    // ---------- suggestion chips ----------
+    const SUGGESTIONS=[
+      {ic:'🕒',t:'What time is it?'},{ic:'📊',t:'What is your status?'},
+      {ic:'✦',t:'What can you do?'},{ic:'🔌',t:'Which devices are online?'},
+      {ic:'💡',t:'Turn on the living room lights'},{ic:'🖥️',t:'Open VS Code on my PC'},
+      {ic:'📱',t:'Find my phone'},{ic:'🌡️',t:"What's the temperature?"},
+      {ic:'🔋',t:'Read the desk sensor'},{ic:'🔒',t:'Lock my PC'},
+    ];
+    const suggestEl=document.getElementById('suggest');
+    function renderSuggest(){const pick=[...SUGGESTIONS].sort(()=>Math.random()-0.5).slice(0,4);
+      suggestEl.innerHTML=pick.map(s=>`<span class="schip" data-cmd="${s.t.replace(/"/g,'&quot;')}"><span class="s-ic">${s.ic}</span>${s.t}</span>`).join('');}
+    renderSuggest();
+    suggestEl.addEventListener('click',e=>{const c=e.target.closest('.schip');if(c)send(c.dataset.cmd);});
 
     addMsg('sys','Booting RUDRA command center…');
 
@@ -423,12 +517,12 @@
       chatWs.onopen=()=>{wsReady=true;dot.classList.remove('offline');sysText.textContent='online system';gNet.set(0.85);
         if(!chatLog.querySelector('.msg.rudra'))addMsg('rudra','RUDRA is online and ready. How can I help?');};
       chatWs.onclose=()=>{wsReady=false;dot.classList.add('offline');sysText.textContent='reconnecting';gNet.set(0.1);setTimeout(connectChatWs,2000);};
-      chatWs.onmessage=ev=>{const m=JSON.parse(ev.data);if(m.type==='reply'){hideThinking();addMsg('rudra',m.text||'…');speak(m.text);pulseAll();wave.spike(.7);chatSend.disabled=false;}};}
+      chatWs.onmessage=ev=>{const m=JSON.parse(ev.data);if(m.type==='reply'){hideThinking();addMsg('rudra',m.text||'…');speak(m.text);pulseAll();wave.spike(.7);activity.bump(.7);renderSuggest();chatSend.disabled=false;}};}
     connectChatWs();
 
-    async function send(text){if(!text)return;goView('command');addMsg('user',text);chatInput.value='';chatSend.disabled=true;showThinking();pulseAll();wave.spike(.9);
+    async function send(text){if(!text)return;goView('command');addMsg('user',text);chatInput.value='';chatSend.disabled=true;showThinking();pulseAll();wave.spike(.9);activity.bump(1);
       if(wsReady){chatWs.send(text);}else{try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-        const d=await r.json();hideThinking();addMsg('rudra',d.reply||'…');speak(d.reply);pulseAll();}catch(err){hideThinking();addMsg('sys','Could not reach RUDRA: '+err);}finally{chatSend.disabled=false;}}}
+        const d=await r.json();hideThinking();addMsg('rudra',d.reply||'…');speak(d.reply);pulseAll();activity.bump(.7);renderSuggest();}catch(err){hideThinking();addMsg('sys','Could not reach RUDRA: '+err);}finally{chatSend.disabled=false;}}}
     chatForm.addEventListener('submit',e=>{e.preventDefault();send(chatInput.value.trim());});
     document.querySelectorAll('.quick-grid').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.qbtn');if(b&&b.dataset.cmd)send(b.dataset.cmd);}));
 
