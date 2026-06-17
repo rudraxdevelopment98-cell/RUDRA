@@ -394,8 +394,9 @@
 
       <!-- MEMORY -->
       <div class="view" id="view-memory">
-        <div class="page-head"><h1>Memory</h1><p>Recent conversation RUDRA remembers.</p></div>
-        <div class="list-card" id="memory-list"><div class="empty">Loading…</div></div>
+        <div class="page-head"><h1>Memory</h1><p>Facts RUDRA remembers, and recent conversation.</p></div>
+        <div class="list-card"><h3>Remembered facts</h3><div id="facts-list"><div class="empty">Nothing remembered yet. Tell RUDRA something like “remember my name is Kuldeep”.</div></div></div>
+        <div class="list-card"><h3>Recent conversation</h3><div id="memory-list"><div class="empty">Loading…</div></div></div>
       </div>
 
       <!-- KNOWLEDGE -->
@@ -768,6 +769,10 @@
 
     // ---------- memory ----------
     async function loadMemory(){try{const r=await fetch('/api/memory');const d=await r.json();const turns=d.turns||[];
+      const facts=Object.entries(d.facts||{});
+      document.getElementById('facts-list').innerHTML=facts.length
+        ? facts.map(([k,v])=>`<div class="kv"><span class="k"><b style="color:var(--orange2)">${k.replace(/</g,'&lt;')}</b></span><span class="v" style="font-family:inherit;color:var(--text);max-width:60%;text-align:right">${(v||'').replace(/</g,'&lt;')}</span></div>`).join('')
+        : '<div class="empty">Nothing remembered yet. Tell RUDRA something like “remember my name is Kuldeep”.</div>';
       document.getElementById('memory-list').innerHTML=turns.length
         ? turns.map(t=>`<div class="mem-turn ${t.role}">${(t.content||'').replace(/</g,'&lt;')}</div>`).join('')
         : '<div class="empty">No conversation stored yet. Say something to RUDRA.</div>';}catch(err){

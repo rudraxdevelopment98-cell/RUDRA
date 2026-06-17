@@ -125,3 +125,41 @@ class Memory:
     def _fetch_devices(self) -> list[sqlite3.Row]:
         assert self._db is not None
         return list(self._db.execute("SELECT * FROM devices").fetchall())
+
+    # --- preferences / long-term facts ---
+    async def set_pref(self, key: str, value: str) -> None:
+        await asyncio.to_thread(self._set_pref, key, value)
+
+    def _set_pref(self, key: str, value: str) -> None:
+        assert self._db is not None
+        self._db.execute(
+            "INSERT INTO prefs (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=?",
+            (key, value, value),
+        )
+        self._db.commit()
+
+    async def get_pref(self, key: str) -> str | None:
+        return await asyncio.to_thread(self._get_pref, key)
+
+    def _get_pref(self, key: str) -> str | None:
+        assert self._db is not None
+        row = self._db.execute("SELECT value FROM prefs WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else None
+
+    async def all_prefs(self) -> dict[str, str]:
+        return await asyncio.to_thread(self._all_prefs)
+
+    def _all_prefs(self) -> dict[str, str]:
+        assert self._db is not None
+        rows = self._db.execute("SELECT key, value FROM prefs ORDER BY key").fetchall()
+        return {r["key"]: r["value"] for r in rows}
+
+    async def delete_pref(self, key: str) -> bool:
+        return await asyncio.to_thread(self._delete_pref, key)
+
+    def _delete_pref(self, key: str) -> bool:
+        assert self._db is not None
+        cur = self._db.execute("DELETE FROM prefs WHERE key=?", (key,))
+        self._db.commit()
+        return cur.rowcount > 0

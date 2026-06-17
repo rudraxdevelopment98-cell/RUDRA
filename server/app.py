@@ -205,10 +205,11 @@ async def logs() -> dict:
 
 @app.get("/api/memory")
 async def memory_turns() -> dict:
-    """Recent conversation turns, for the dashboard's Memory view."""
+    """Recent conversation turns + remembered facts, for the Memory view."""
     memory: Memory = state["memory"]
     turns = await memory.recent_turns(limit=40)
-    return {"turns": turns}
+    facts = await memory.all_prefs()
+    return {"turns": turns, "facts": facts}
 
 
 @app.websocket("/ws/chat")

@@ -13,6 +13,7 @@ from core.skills.electronics import ElectronicsSkill
 from core.skills.iot import IoTSkill
 from core.skills.pc import PCSkill
 from core.skills.phone import PhoneSkill
+from core.skills.recall import RecallSkill
 from core.skills.system import SystemSkill
 
 SKILL_CLASSES: list[type[Skill]] = [
@@ -21,6 +22,7 @@ SKILL_CLASSES: list[type[Skill]] = [
     PhoneSkill,
     IoTSkill,
     ElectronicsSkill,
+    RecallSkill,
 ]
 
 

@@ -52,6 +52,7 @@ class Orchestrator:
         log.info("➡  user: %s", text)
 
         history = await self.memory.recent_turns()
+        history = await self._with_memory(history)
         response: LLMResponse = await self.llm.think(
             text, self._tools, history, self._execute_tool
         )
@@ -60,6 +61,18 @@ class Orchestrator:
         await self.memory.add_turn("assistant", response.text)
         log.info("⬅  rudra: %s", response.text)
         return response.text
+
+    async def _with_memory(self, history: list[dict]) -> list[dict]:
+        """Prepend remembered facts so RUDRA recalls them without being asked."""
+        prefs = await self.memory.all_prefs()
+        if not prefs:
+            return history
+        facts = "; ".join(f"{k} = {v}" for k, v in prefs.items())
+        primer = [
+            {"role": "user", "content": f"Things you remember about me: {facts}."},
+            {"role": "assistant", "content": "Noted — I'll keep those in mind."},
+        ]
+        return primer + history
 
     async def _execute_tool(self, name: str, args: dict) -> dict:
         """Route one tool call (e.g. 'pc.open_app') to the owning skill."""
