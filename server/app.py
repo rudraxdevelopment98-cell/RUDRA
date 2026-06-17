@@ -112,7 +112,8 @@ async def chat(req: ChatRequest) -> ChatResponse:
     orchestrator: Orchestrator = state["orchestrator"]
     try:
         reply = await orchestrator.handle(req.text)
-    except RuntimeError as exc:
+    except Exception as exc:  # noqa: BLE001 — never let a brain error kill the request
+        log.exception("chat failed")
         return ChatResponse(reply=f"⚠ {exc}")
     return ChatResponse(reply=reply)
 
@@ -150,7 +151,8 @@ async def ws_chat(ws: WebSocket) -> None:
             text = await ws.receive_text()
             try:
                 reply = await orchestrator.handle(text)
-            except RuntimeError as exc:
+            except Exception as exc:  # noqa: BLE001 — never let a brain error kill the socket
+                log.exception("ws chat failed")
                 reply = f"⚠ {exc}"
             await ws.send_json({"type": "reply", "text": reply})
     except WebSocketDisconnect:
