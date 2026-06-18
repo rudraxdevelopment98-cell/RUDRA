@@ -206,6 +206,31 @@ class LoginRequest(BaseModel):
     password: str
 
 
+# --- Login brute-force protection -------------------------------------------
+# Track failed attempts per client IP and lock that IP out after too many, so a
+# public tunnel can't be hammered with password guesses.
+_LOGIN_FAILS: dict[str, list[float]] = {}
+_MAX_FAILS = 5            # allowed failures...
+_FAIL_WINDOW = 300.0     # ...within this many seconds before lockout
+_LOCKOUT = 300.0         # how long the IP stays locked out
+
+
+def _client_ip(request: Request) -> str:
+    # Honour the tunnel's forwarded header when present, else the socket peer.
+    fwd = request.headers.get("x-forwarded-for")
+    return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown")
+
+
+def _locked_out(ip: str) -> bool:
+    fails = [t for t in _LOGIN_FAILS.get(ip, []) if time.monotonic() - t < _FAIL_WINDOW]
+    _LOGIN_FAILS[ip] = fails
+    return len(fails) >= _MAX_FAILS
+
+
+def _record_fail(ip: str) -> None:
+    _LOGIN_FAILS.setdefault(ip, []).append(time.monotonic())
+
+
 @app.get("/login")
 async def login_page() -> HTMLResponse:
     if not config.auth_token:
@@ -214,10 +239,17 @@ async def login_page() -> HTMLResponse:
 
 
 @app.post("/api/login")
-async def login(req: LoginRequest) -> JSONResponse:
+async def login(req: LoginRequest, request: Request) -> JSONResponse:
+    ip = _client_ip(request)
+    if _locked_out(ip):
+        log.warning("🔒 login locked out for %s (too many attempts)", ip)
+        return JSONResponse({"detail": "too many attempts — try again later"}, status_code=429)
     # Constant-time compare so a wrong password can't be timed character-by-character.
     if not config.auth_token or not hmac.compare_digest(req.password, config.auth_token):
+        _record_fail(ip)
+        log.warning("⚠ failed login from %s", ip)
         return JSONResponse({"detail": "invalid"}, status_code=401)
+    _LOGIN_FAILS.pop(ip, None)  # clear the IP's failure history on success
     token = secrets.token_urlsafe(32)
     SESSIONS.add(token)
     resp = JSONResponse({"ok": True})
