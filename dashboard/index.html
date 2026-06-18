@@ -82,6 +82,23 @@
       transition:opacity .25s;}
     .view.active{opacity:1;pointer-events:auto;}
 
+    /* Stage Manager split: drag a dock card onto the canvas to keep two pages open at once */
+    .main.split{display:flex;align-items:stretch;}
+    .main.split .view{display:none;}
+    .main.split .view.split-pane{display:block;position:relative;inset:auto;flex:1 1 0;min-width:0;
+      height:100%;opacity:1;pointer-events:auto;border-left:1px solid var(--line);box-shadow:-12px 0 24px -18px #000 inset;}
+    .main.split .view.split-pane:first-child{border-left:none;}
+    .pane-bar{display:none;position:sticky;top:0;float:right;z-index:8;}
+    .main.split .view.split-pane .pane-bar{display:flex;}
+    .pane-bar .stage-btn{margin-left:6px;}
+    .main.dragover-hint::after{content:'Drop to open side-by-side';position:absolute;inset:10px;
+      border:2px dashed var(--orange);border-radius:14px;display:flex;align-items:center;justify-content:center;
+      color:var(--orange2);font-size:13px;letter-spacing:1px;background:rgba(0,200,255,.06);z-index:55;pointer-events:none;}
+
+    .page-dock{position:absolute;top:14px;left:8px;z-index:60;}
+    .page-dock .stage-card{cursor:grab;}
+    .page-dock .stage-card:active{cursor:grabbing;}
+
     /* command center grid */
     #view-command{display:grid;gap:16px;grid-template-columns:1fr 1.5fr 1fr;grid-template-rows:auto 1fr;
       grid-template-areas:"core center feed" "agents center quick";overflow:hidden;}
@@ -376,7 +393,8 @@
     </header>
 
     <!-- MAIN -->
-    <section class="main">
+    <section class="main" id="main">
+      <div class="page-dock" id="page-dock"></div>
       <!-- COMMAND CENTER -->
       <div class="view active" id="view-command">
         <div class="panel core">
@@ -929,14 +947,83 @@
       ws.onclose=()=>setTimeout(connectLogWs,2000);}
     connectLogWs();
 
-    // ---------- view router ----------
+    // ---------- view router + Stage-Manager open/dock/split ----------
     const VIEW_NAMES={command:'Command Center',dashboard:'Dashboard',core:'AI Core',agents:'Agents',analytics:'Analytics',network:'Network',diagnostics:'Diagnostics',memory:'Memory',knowledge:'Knowledge Base',skills:'Tasks & Skills'};
-    function goView(v){
-      document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id==='view-'+v));
-      document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===v));
-      document.getElementById('view-title').textContent=VIEW_NAMES[v]||'';
-      if(v==='memory')loadMemory();
+    const VIEW_ICONS={command:'☵',dashboard:'▦',core:'◉',agents:'⬡',analytics:'📈',network:'◈',diagnostics:'⌬',memory:'▤',knowledge:'❖',skills:'✦'};
+    const mainEl=document.getElementById('main'),pageDockEl=document.getElementById('page-dock');
+    let openViews=['command'];      // currently visible on the canvas (1 = normal, 2+ = split)
+    let pageDock=[];                // recently-minimized pages waiting in the stack
+
+    document.querySelectorAll('.view').forEach(view=>{
+      const bar=document.createElement('div');
+      bar.className='pane-bar';
+      bar.innerHTML='<button type="button" class="stage-btn dot-min" title="Send to dock">–</button>';
+      bar.querySelector('button').addEventListener('click',e=>{e.stopPropagation();minimizeToDock(view.id.replace('view-',''));});
+      view.prepend(bar);
+    });
+
+    function layout(){
+      document.querySelectorAll('.view').forEach(el=>{
+        const id=el.id.replace('view-','');
+        const isOpen=openViews.includes(id);
+        el.classList.toggle('active',isOpen);
+        el.classList.toggle('split-pane',isOpen&&openViews.length>1);
+      });
+      mainEl.classList.toggle('split',openViews.length>1);
+      document.querySelectorAll('#nav a[data-view]').forEach(a=>a.classList.toggle('active',openViews.includes(a.dataset.view)));
+      document.getElementById('view-title').textContent=openViews.map(v=>VIEW_NAMES[v]).filter(Boolean).join('  +  ');
+      if(openViews.includes('memory'))loadMemory();
+      renderPageDock();
     }
+    function pushDock(id){
+      if(!id)return;
+      pageDock=pageDock.filter(x=>x!==id);
+      pageDock.unshift(id);
+      if(pageDock.length>6)pageDock.length=6;
+    }
+    // Normal tab click: focus one page solo — whatever was open before slides into the dock stack.
+    function goView(v){
+      openViews.filter(id=>id!==v).forEach(pushDock);
+      pageDock=pageDock.filter(x=>x!==v);
+      openViews=[v];
+      layout();
+    }
+    // Drag a dock card onto the canvas: keep it open *alongside* whatever's already there.
+    function openAlongside(v){
+      pageDock=pageDock.filter(x=>x!==v);
+      if(!openViews.includes(v))openViews.push(v);
+      if(openViews.length>3)pushDock(openViews.shift());
+      layout();
+    }
+    function minimizeToDock(v){
+      if(openViews.length<=1)return; // last page can't be minimized — nothing to show
+      openViews=openViews.filter(x=>x!==v);
+      pushDock(v);
+      layout();
+    }
+    function renderPageDock(){
+      pageDockEl.innerHTML='';
+      pageDock.forEach(id=>{
+        const card=document.createElement('div');
+        card.className='stage-card';card.draggable=true;card.title='Click to switch, drag to open side-by-side';
+        card.innerHTML=`<div class="sc-ico">${VIEW_ICONS[id]||'▣'}</div><div class="sc-name">${VIEW_NAMES[id]||id}</div>`+
+          `<div class="sc-bars"><i></i><i></i><i></i></div>`;
+        card.addEventListener('click',()=>goView(id));
+        card.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain','page:'+id);e.dataTransfer.effectAllowed='copy';});
+        pageDockEl.appendChild(card);
+      });
+    }
+    mainEl.addEventListener('dragover',e=>{
+      if([...e.dataTransfer.types].includes('text/plain')){e.preventDefault();mainEl.classList.add('dragover-hint');}
+    });
+    mainEl.addEventListener('dragleave',()=>mainEl.classList.remove('dragover-hint'));
+    mainEl.addEventListener('drop',e=>{
+      e.preventDefault();mainEl.classList.remove('dragover-hint');
+      const data=e.dataTransfer.getData('text/plain');
+      if(data&&data.startsWith('page:'))openAlongside(data.slice(5));
+    });
+
+    layout();
     document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('a');if(!a)return;
       if(a.dataset.action==='connect'){openModal();return;}
       if(a.dataset.view)goView(a.dataset.view);
