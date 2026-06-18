@@ -109,6 +109,23 @@
     .list-card{position:relative;overflow:hidden;}
     .list-card::before{top:6px;left:6px;border-right:none;border-bottom:none;}
     .list-card::after{bottom:6px;right:6px;border-left:none;border-top:none;}
+
+    /* Stage-Manager style: every panel/list-card becomes resizable + minimizable */
+    .stageable{resize:vertical;overflow:auto;min-height:120px;padding-top:34px!important;}
+    .stageable .stage-bar{position:absolute;top:0;left:0;right:0;height:28px;display:flex;align-items:center;
+      justify-content:flex-end;gap:6px;padding:0 10px;background:linear-gradient(180deg,rgba(8,26,44,.55),transparent);z-index:5;}
+    .stage-btn{width:20px;height:20px;border-radius:6px;border:1px solid var(--line2);background:rgba(10,30,50,.7);
+      color:var(--muted);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;
+      cursor:pointer;transition:.15s;}
+    .stage-btn:hover{color:var(--orange2);border-color:var(--orange);background:rgba(0,200,255,.12);}
+    .stageable.stage-min{resize:none;height:40px!important;min-height:40px;overflow:hidden;}
+    .stageable.stage-min>*:not(.stage-bar){display:none;}
+    .stage-strip{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px;padding:10px;border:1px dashed var(--line2);
+      border-radius:12px;background:rgba(8,26,44,.35);}
+    .stage-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--orange2);
+      background:rgba(0,200,255,.08);border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+      cursor:pointer;transition:.15s;}
+    .stage-chip:hover{background:rgba(0,200,255,.16);border-color:var(--line2);transform:translateY(-1px);}
     .panel h2{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin:0 0 12px;
       display:flex;align-items:center;gap:8px;font-weight:700;}
     .panel h2 .badge{margin-left:auto;color:var(--teal);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);
@@ -905,6 +922,68 @@
     document.querySelectorAll('[data-action="connect"]').forEach(b=>b.addEventListener('click',openModal));
     document.getElementById('close-connect').addEventListener('click',closeModal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+
+    // ---- Stage-Manager style panels: resizable + minimize/restore, persisted ----
+    function initStaging(){
+      const STORE_KEY='rudra-stage-v1';
+      let state={};
+      try{state=JSON.parse(localStorage.getItem(STORE_KEY)||'{}');}catch(e){state={};}
+      const save=()=>localStorage.setItem(STORE_KEY,JSON.stringify(state));
+
+      function setMin(el,key,min){
+        el.classList.toggle('stage-min',min);
+        state[key]=Object.assign({},state[key],{min});
+        save();
+        updateStack(el.closest('.view'));
+      }
+      function updateStack(view){
+        if(!view)return;
+        let strip=view.querySelector('.stage-strip');
+        const minimized=[...view.querySelectorAll('.stageable.stage-min')];
+        if(!minimized.length){if(strip)strip.remove();return;}
+        if(!strip){strip=document.createElement('div');strip.className='stage-strip';view.insertBefore(strip,view.firstChild);}
+        strip.innerHTML='';
+        minimized.forEach(p=>{
+          const label=p.querySelector('h2,h3')?.textContent?.trim()||'Panel';
+          const chip=document.createElement('button');
+          chip.type='button';chip.className='stage-chip';chip.textContent='▢ '+label;
+          chip.addEventListener('click',()=>setMin(p,p.dataset.stageKey,false));
+          strip.appendChild(chip);
+        });
+      }
+
+      document.querySelectorAll('.panel, .list-card').forEach((el,i)=>{
+        const view=el.closest('.view');
+        const key=(view?view.id:'root')+'-'+i;
+        el.dataset.stageKey=key;
+        el.classList.add('stageable');
+
+        const bar=document.createElement('div');
+        bar.className='stage-bar';
+        bar.innerHTML='<button type="button" class="stage-btn stage-min-btn" title="Minimize / restore">–</button>'+
+          '<button type="button" class="stage-btn stage-reset-btn" title="Reset size">⤢</button>';
+        el.prepend(bar);
+        bar.querySelector('.stage-min-btn').addEventListener('click',e=>{e.stopPropagation();setMin(el,key,!el.classList.contains('stage-min'));});
+        bar.querySelector('.stage-reset-btn').addEventListener('click',e=>{e.stopPropagation();el.style.height='';state[key]=Object.assign({},state[key],{h:null});save();});
+
+        const saved=state[key];
+        if(saved&&saved.h)el.style.height=saved.h;
+        if(saved&&saved.min)el.classList.add('stage-min');
+
+        let resizeTimer;
+        new ResizeObserver(()=>{
+          if(el.classList.contains('stage-min'))return;
+          clearTimeout(resizeTimer);
+          resizeTimer=setTimeout(()=>{
+            state[key]=Object.assign({},state[key],{h:el.style.height||(el.offsetHeight+'px')});
+            save();
+          },300);
+        }).observe(el);
+      });
+
+      document.querySelectorAll('.view').forEach(updateStack);
+    }
+    initStaging();
   </script>
 </body>
 </html>
