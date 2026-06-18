@@ -376,6 +376,7 @@
       <div class="side-foot">
         <div class="miniorb"><canvas id="mini-orb" width="52" height="52" style="width:26px;height:26px"></canvas></div>
         <small>Core <b id="foot-core">online</b><br><span id="foot-prov">gemini</span></small>
+        <button type="button" id="logout-btn" title="Sign out" style="margin-left:auto;background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;">⏻</button>
       </div>
     </aside>
 
@@ -1060,6 +1061,12 @@
     document.querySelectorAll('[data-action="connect"]').forEach(b=>b.addEventListener('click',openModal));
     document.getElementById('close-connect').addEventListener('click',closeModal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+
+    // ---------- sign out ----------
+    document.getElementById('logout-btn').addEventListener('click',async()=>{
+      try{await fetch('/api/logout',{method:'POST'});}catch(e){}
+      location.href='/login';
+    });
 
     // ---- Stage-Manager style panels: resizable, minimize into a left dock ----
     function initStaging(){

@@ -49,8 +49,11 @@ class Config:
     db_path: str = field(default_factory=lambda: _env("RUDRA_DB", "rudra.db"))
 
     # --- Server ---
-    host: str = field(default_factory=lambda: _env("RUDRA_HOST", "0.0.0.0"))
+    host: str = field(default_factory=lambda: _env("RUDRA_HOST", "127.0.0.1"))
     port: int = field(default_factory=lambda: int(_env("RUDRA_PORT", "8080")))
+    # Gate the dashboard + API behind a password. Leave empty for localhost-only
+    # dev; MUST be set before exposing RUDRA over a tunnel or network.
+    auth_token: str = field(default_factory=lambda: _env("RUDRA_AUTH_TOKEN"))
 
     def validate(self) -> list[str]:
         """Return a list of human-readable warnings about missing config."""
@@ -61,6 +64,12 @@ class Config:
             warnings.append("ANTHROPIC_API_KEY is not set — the brain cannot think yet.")
         if self.voice_enabled and self.tts_engine == "elevenlabs" and not self.tts_api_key:
             warnings.append("TTS_API_KEY is not set — cloud voice replies are disabled.")
+        if not self.auth_token and self.host not in ("127.0.0.1", "localhost"):
+            warnings.append(
+                "RUDRA_AUTH_TOKEN is not set but the server is bound to a non-local "
+                f"address ({self.host}) — the dashboard and API are UNAUTHENTICATED. "
+                "Set RUDRA_AUTH_TOKEN before exposing RUDRA beyond this machine."
+            )
         if self.voice_enabled and not self.wake_model_path:
             warnings.append(
                 "RUDRA_WAKE_MODEL_PATH is not set — falling back to a stock openWakeWord "

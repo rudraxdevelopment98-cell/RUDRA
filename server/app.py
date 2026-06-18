@@ -15,15 +15,17 @@ Then open http://localhost:8080
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 import os
+import secrets
 import time
 from collections import deque
 from contextlib import asynccontextmanager
 
 import psutil
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -39,6 +41,50 @@ log = get_logger("rudra.server")
 DASHBOARD_DIR = os.path.join(os.path.dirname(__file__), "..", "dashboard")
 
 state: dict = {}
+
+# --- Authentication ---------------------------------------------------------
+# A login password (RUDRA_AUTH_TOKEN) gates the whole app. On success we mint a
+# random session cookie kept in-memory, so restarting the server logs everyone
+# out. When no token is configured, the app runs open (localhost-dev only).
+SESSIONS: set[str] = set()
+COOKIE_NAME = "rudra_session"
+# Paths reachable without a session, so a logged-out user can actually log in.
+PUBLIC_PATHS = {"/login", "/api/login", "/favicon.ico"}
+
+
+def _authed(request_or_ws) -> bool:
+    """True if auth is disabled, or the request carries a valid session cookie."""
+    if not config.auth_token:
+        return True
+    return request_or_ws.cookies.get(COOKIE_NAME) in SESSIONS
+
+
+LOGIN_PAGE = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RUDRA — Sign in</title><style>
+*{box-sizing:border-box}body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
+font-family:system-ui,-apple-system,sans-serif;background:#04070d;color:#cfe9ff}
+.box{width:300px;padding:30px;border:1px solid rgba(0,200,255,.25);border-radius:16px;
+background:linear-gradient(155deg,rgba(12,34,56,.6),rgba(8,22,38,.6));box-shadow:0 12px 40px rgba(0,0,0,.5)}
+h1{margin:0 0 4px;font-size:22px;letter-spacing:6px;color:#7df9ff}
+p{margin:0 0 18px;font-size:12px;color:#6b8299;letter-spacing:1px}
+input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid rgba(0,200,255,.25);
+background:rgba(4,11,20,.7);color:#fff;font-size:14px}
+button{width:100%;margin-top:12px;padding:11px;border:none;border-radius:10px;cursor:pointer;
+background:linear-gradient(135deg,#00c8ff,#0a7fcc);color:#fff;font-weight:700;letter-spacing:1px}
+.err{color:#ff6b6b;font-size:12px;margin-top:10px;min-height:16px}
+</style></head><body><div class="box">
+<h1>RUDRA</h1><p>COMMAND CENTER</p>
+<input id="pw" type="password" placeholder="Access password" autofocus>
+<button id="go">Unlock</button><div class="err" id="err"></div></div><script>
+const pw=document.getElementById('pw'),err=document.getElementById('err');
+async function login(){err.textContent='';
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({password:pw.value})});
+  if(r.ok){location.href='/';}else{err.textContent='Incorrect password.';pw.value='';pw.focus();}}
+document.getElementById('go').onclick=login;
+pw.addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+</script></body></html>"""
 
 
 class LogBroadcaster(logging.Handler):
@@ -146,9 +192,45 @@ app = FastAPI(title="RUDRA", lifespan=lifespan)
 
 
 @app.middleware("http")
-async def count_requests(request, call_next):
+async def count_requests(request: Request, call_next):
     metrics.requests += 1
+    # Auth gate: everything but the login surface needs a valid session.
+    if request.url.path not in PUBLIC_PATHS and not _authed(request):
+        if request.url.path.startswith(("/api", "/ws")):
+            return JSONResponse({"detail": "unauthorized"}, status_code=401)
+        return RedirectResponse("/login")
     return await call_next(request)
+
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+@app.get("/login")
+async def login_page() -> HTMLResponse:
+    if not config.auth_token:
+        return RedirectResponse("/")  # auth disabled — nothing to log into
+    return HTMLResponse(LOGIN_PAGE)
+
+
+@app.post("/api/login")
+async def login(req: LoginRequest) -> JSONResponse:
+    # Constant-time compare so a wrong password can't be timed character-by-character.
+    if not config.auth_token or not hmac.compare_digest(req.password, config.auth_token):
+        return JSONResponse({"detail": "invalid"}, status_code=401)
+    token = secrets.token_urlsafe(32)
+    SESSIONS.add(token)
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
+    return resp
+
+
+@app.post("/api/logout")
+async def logout(request: Request) -> JSONResponse:
+    SESSIONS.discard(request.cookies.get(COOKIE_NAME, ""))
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(COOKIE_NAME)
+    return resp
 
 
 class ChatRequest(BaseModel):
@@ -214,6 +296,9 @@ async def memory_turns() -> dict:
 
 @app.websocket("/ws/chat")
 async def ws_chat(ws: WebSocket) -> None:
+    if not _authed(ws):
+        await ws.close(code=1008)  # policy violation
+        return
     await ws.accept()
     orchestrator: Orchestrator = state["orchestrator"]
     metrics.ws_connections += 1
@@ -238,6 +323,9 @@ async def ws_chat(ws: WebSocket) -> None:
 
 @app.websocket("/ws/logs")
 async def ws_logs(ws: WebSocket) -> None:
+    if not _authed(ws):
+        await ws.close(code=1008)  # policy violation
+        return
     await ws.accept()
     log_broadcaster.sockets.add(ws)
     try:

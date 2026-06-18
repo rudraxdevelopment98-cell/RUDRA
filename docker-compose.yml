@@ -13,6 +13,7 @@ services:
       - "9001:9001"     # MQTT over WebSocket (for the dashboard)
     volumes:
       - ./infra/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./infra/passwd:/mosquitto/config/passwd:ro
     restart: unless-stopped
 
   # The brain — listens, thinks (Claude), and commands devices (headless/CLI).
@@ -33,7 +34,9 @@ services:
     build: .
     container_name: rudra-web
     ports:
-      - "8080:8080"
+      # Bind to localhost only — remote access goes through a secure tunnel,
+      # not by exposing this port to the network. Use "8080:8080" to expose on LAN.
+      - "127.0.0.1:8080:8080"
     depends_on:
       - broker
     env_file:

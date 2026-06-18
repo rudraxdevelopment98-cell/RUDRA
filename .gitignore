@@ -12,8 +12,9 @@ __pycache__/
 venv/
 *.egg-info/
 
-# Mosquitto data
+# Mosquitto data + broker credentials (never commit)
 infra/data/
+infra/passwd
 
 # OS / editor
 .DS_Store
