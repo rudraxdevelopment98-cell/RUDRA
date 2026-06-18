@@ -110,22 +110,58 @@
     .list-card::before{top:6px;left:6px;border-right:none;border-bottom:none;}
     .list-card::after{bottom:6px;right:6px;border-left:none;border-top:none;}
 
-    /* Stage-Manager style: every panel/list-card becomes resizable + minimizable */
-    .stageable{resize:vertical;overflow:auto;min-height:120px;padding-top:34px!important;}
-    .stageable .stage-bar{position:absolute;top:0;left:0;right:0;height:28px;display:flex;align-items:center;
-      justify-content:flex-end;gap:6px;padding:0 10px;background:linear-gradient(180deg,rgba(8,26,44,.55),transparent);z-index:5;}
-    .stage-btn{width:20px;height:20px;border-radius:6px;border:1px solid var(--line2);background:rgba(10,30,50,.7);
-      color:var(--muted);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;
-      cursor:pointer;transition:.15s;}
-    .stage-btn:hover{color:var(--orange2);border-color:var(--orange);background:rgba(0,200,255,.12);}
-    .stageable.stage-min{resize:none;height:40px!important;min-height:40px;overflow:hidden;}
-    .stageable.stage-min>*:not(.stage-bar){display:none;}
-    .stage-strip{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px;padding:10px;border:1px dashed var(--line2);
-      border-radius:12px;background:rgba(8,26,44,.35);}
-    .stage-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--orange2);
-      background:rgba(0,200,255,.08);border:1px solid var(--line);border-radius:999px;padding:6px 12px;
-      cursor:pointer;transition:.15s;}
-    .stage-chip:hover{background:rgba(0,200,255,.16);border-color:var(--line2);transform:translateY(-1px);}
+    /* Stage-Manager style: panels are resizable, and minimize into a left dock */
+    .stageable{overflow:auto;min-height:120px;padding-top:36px!important;transition:box-shadow .2s,border-color .2s;}
+    .stageable:hover{border-color:var(--line2);}
+    .stageable .stage-bar{position:absolute;top:0;left:0;right:0;height:30px;display:flex;align-items:center;
+      justify-content:flex-end;gap:7px;padding:0 12px;z-index:6;
+      background:linear-gradient(180deg,rgba(8,26,44,.6),transparent);}
+    .stage-btn{width:22px;height:22px;border-radius:7px;border:1px solid var(--line2);
+      background:rgba(10,30,50,.7);color:var(--muted);font-size:13px;line-height:1;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;}
+    .stage-btn:hover{color:var(--orange2);border-color:var(--orange);background:rgba(0,200,255,.14);
+      box-shadow:0 0 10px rgba(0,200,255,.25);}
+    .stage-btn.dot-min{font-size:0;background:#f5b942;border-color:#caa036;}
+    .stage-btn.dot-min:hover{box-shadow:0 0 10px rgba(245,185,66,.6);}
+    /* custom resize grip (bottom-right) */
+    .stageable{resize:both;}
+    .stageable::-webkit-resizer{background:transparent;}
+    .stage-grip{position:absolute;right:3px;bottom:3px;width:16px;height:16px;z-index:6;pointer-events:none;
+      opacity:.45;background:
+        linear-gradient(135deg,transparent 45%,var(--orange2) 45%,var(--orange2) 55%,transparent 55%),
+        linear-gradient(135deg,transparent 70%,var(--orange2) 70%,var(--orange2) 80%,transparent 80%);}
+    .stageable:hover .stage-grip{opacity:.9;}
+
+    /* the left dock that holds minimized panels — Stage Manager rail */
+    .stage-dock{position:absolute;top:14px;left:8px;width:128px;display:flex;flex-direction:column;gap:12px;
+      z-index:30;pointer-events:none;}
+    .stage-dock:empty{display:none;}
+    .stage-card{pointer-events:auto;cursor:pointer;border:1px solid var(--line2);border-radius:12px;
+      padding:11px 12px;background:linear-gradient(155deg,rgba(12,34,56,.92),rgba(8,22,38,.92));
+      box-shadow:0 8px 22px rgba(0,0,0,.45),0 0 0 1px rgba(0,200,255,.06) inset;
+      transform:perspective(600px) rotateY(11deg) scale(.94);transform-origin:left center;
+      transition:transform .22s cubic-bezier(.2,.8,.3,1),box-shadow .2s,border-color .2s;
+      animation:dockIn .28s cubic-bezier(.2,.8,.3,1);}
+    .stage-card:hover{transform:perspective(600px) rotateY(0) scale(1);border-color:var(--orange);
+      box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 16px rgba(0,200,255,.3);}
+    @keyframes dockIn{from{opacity:0;transform:perspective(600px) rotateY(28deg) scale(.8) translateX(-14px);}
+      to{opacity:1;transform:perspective(600px) rotateY(11deg) scale(.94);}}
+    .stage-card .sc-ico{font-size:16px;margin-bottom:5px;color:var(--orange2);}
+    .stage-card .sc-name{font-size:11px;line-height:1.3;color:var(--text);letter-spacing:.5px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .stage-card .sc-bars{display:flex;gap:3px;margin-top:7px;}
+    .stage-card .sc-bars i{flex:1;height:3px;border-radius:2px;background:rgba(0,200,255,.3);}
+    .stage-card .sc-bars i:nth-child(2){background:rgba(0,200,255,.18);}
+    .stage-card .sc-bars i:nth-child(3){background:rgba(0,200,255,.1);}
+    /* shift active content right so the dock doesn't overlap it */
+    .view.has-dock{padding-left:152px;}
+    #view-command.has-dock{padding-left:148px;}
+    @media (max-width:820px){
+      .stage-dock{flex-direction:row;flex-wrap:wrap;width:auto;right:8px;}
+      .stage-card{transform:none;animation:none;}
+      .stage-card:hover{transform:translateY(-2px);}
+      .view.has-dock,#view-command.has-dock{padding-left:14px;padding-top:96px;}
+    }
     .panel h2{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin:0 0 12px;
       display:flex;align-items:center;gap:8px;font-weight:700;}
     .panel h2 .badge{margin-left:auto;color:var(--teal);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);
@@ -923,32 +959,40 @@
     document.getElementById('close-connect').addEventListener('click',closeModal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 
-    // ---- Stage-Manager style panels: resizable + minimize/restore, persisted ----
+    // ---- Stage-Manager style panels: resizable, minimize into a left dock ----
     function initStaging(){
-      const STORE_KEY='rudra-stage-v1';
+      const STORE_KEY='rudra-stage-v2';
       let state={};
       try{state=JSON.parse(localStorage.getItem(STORE_KEY)||'{}');}catch(e){state={};}
       const save=()=>localStorage.setItem(STORE_KEY,JSON.stringify(state));
 
-      function setMin(el,key,min){
-        el.classList.toggle('stage-min',min);
+      function panelMeta(el){
+        const ico=el.querySelector('h2 .ico,h3 .ico,.ico')?.textContent?.trim()||'▣';
+        const name=(el.querySelector('h2,h3')?.textContent||'Panel').replace(ico,'').trim()||'Panel';
+        return {ico,name};
+      }
+      function setMin(el,min){
+        const key=el.dataset.stageKey;
+        el.style.display=min?'none':'';
         state[key]=Object.assign({},state[key],{min});
         save();
-        updateStack(el.closest('.view'));
+        renderDock(el.closest('.view'));
       }
-      function updateStack(view){
+      function renderDock(view){
         if(!view)return;
-        let strip=view.querySelector('.stage-strip');
-        const minimized=[...view.querySelectorAll('.stageable.stage-min')];
-        if(!minimized.length){if(strip)strip.remove();return;}
-        if(!strip){strip=document.createElement('div');strip.className='stage-strip';view.insertBefore(strip,view.firstChild);}
-        strip.innerHTML='';
+        let dock=view.querySelector('.stage-dock');
+        if(!dock){dock=document.createElement('div');dock.className='stage-dock';view.insertBefore(dock,view.firstChild);}
+        const minimized=[...view.querySelectorAll('.stageable')].filter(p=>state[p.dataset.stageKey]?.min);
+        dock.innerHTML='';
+        view.classList.toggle('has-dock',minimized.length>0);
         minimized.forEach(p=>{
-          const label=p.querySelector('h2,h3')?.textContent?.trim()||'Panel';
-          const chip=document.createElement('button');
-          chip.type='button';chip.className='stage-chip';chip.textContent='▢ '+label;
-          chip.addEventListener('click',()=>setMin(p,p.dataset.stageKey,false));
-          strip.appendChild(chip);
+          const {ico,name}=panelMeta(p);
+          const card=document.createElement('div');
+          card.className='stage-card';card.title='Restore '+name;
+          card.innerHTML=`<div class="sc-ico">${ico}</div><div class="sc-name">${name}</div>`+
+            `<div class="sc-bars"><i></i><i></i><i></i></div>`;
+          card.addEventListener('click',()=>setMin(p,false));
+          dock.appendChild(card);
         });
       }
 
@@ -960,28 +1004,28 @@
 
         const bar=document.createElement('div');
         bar.className='stage-bar';
-        bar.innerHTML='<button type="button" class="stage-btn stage-min-btn" title="Minimize / restore">–</button>'+
+        bar.innerHTML='<button type="button" class="stage-btn dot-min stage-min-btn" title="Send to dock">–</button>'+
           '<button type="button" class="stage-btn stage-reset-btn" title="Reset size">⤢</button>';
-        el.prepend(bar);
-        bar.querySelector('.stage-min-btn').addEventListener('click',e=>{e.stopPropagation();setMin(el,key,!el.classList.contains('stage-min'));});
-        bar.querySelector('.stage-reset-btn').addEventListener('click',e=>{e.stopPropagation();el.style.height='';state[key]=Object.assign({},state[key],{h:null});save();});
+        const grip=document.createElement('div');grip.className='stage-grip';
+        el.prepend(bar);el.appendChild(grip);
+        bar.querySelector('.stage-min-btn').addEventListener('click',e=>{e.stopPropagation();setMin(el,true);});
+        bar.querySelector('.stage-reset-btn').addEventListener('click',e=>{e.stopPropagation();el.style.height='';el.style.width='';state[key]=Object.assign({},state[key],{h:null,w:null});save();});
 
         const saved=state[key];
-        if(saved&&saved.h)el.style.height=saved.h;
-        if(saved&&saved.min)el.classList.add('stage-min');
+        if(saved){if(saved.h)el.style.height=saved.h;if(saved.w)el.style.width=saved.w;if(saved.min)el.style.display='none';}
 
-        let resizeTimer;
+        let rt;
         new ResizeObserver(()=>{
-          if(el.classList.contains('stage-min'))return;
-          clearTimeout(resizeTimer);
-          resizeTimer=setTimeout(()=>{
-            state[key]=Object.assign({},state[key],{h:el.style.height||(el.offsetHeight+'px')});
+          clearTimeout(rt);
+          rt=setTimeout(()=>{
+            if(state[key]?.min)return;
+            state[key]=Object.assign({},state[key],{h:el.style.height||null,w:el.style.width||null});
             save();
           },300);
         }).observe(el);
       });
 
-      document.querySelectorAll('.view').forEach(updateStack);
+      document.querySelectorAll('.view').forEach(renderDock);
     }
     initStaging();
   </script>
