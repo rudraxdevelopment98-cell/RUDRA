@@ -483,17 +483,60 @@
           x.strokeStyle=`rgba(120,245,255,${.22*(1-d/150)})`;x.stroke();}}
         requestAnimationFrame(t);}rs();t();})();
 
-    // ---------- orbs ----------
-    function makeOrb(id,size,om){const cv=document.getElementById(id),ctx=cv.getContext('2d');const c=cv.width/2;let t=0,e=0;
-      function f(){ctx.clearRect(0,0,cv.width,cv.height);t+=0.025;e*=0.93;const base=size*0.30+e*size*0.08;
-        for(let r=0;r<3;r++){ctx.beginPath();ctx.arc(c,c,base+r*size*0.13,t*(r%2?-1:1),t*(r%2?-1:1)+Math.PI*1.5);
-          ctx.strokeStyle=r===0?`rgba(0,200,255,.95)`:`rgba(125,249,255,${.55-r*.13})`;ctx.lineWidth=size*0.04;ctx.stroke();}
-        const g=ctx.createRadialGradient(c,c,0,c,c,base+e*size*0.12);g.addColorStop(0,`rgba(120,225,255,${.62+e*.38})`);g.addColorStop(1,'rgba(0,90,160,0)');
-        ctx.fillStyle=g;ctx.beginPath();ctx.arc(c,c,base+size*0.12,0,7);ctx.fill();
-        
+    // ---------- orbs (JARVIS arc-reactor) ----------
+    function makeOrb(id,size){const cv=document.getElementById(id),ctx=cv.getContext('2d');
+      const c=size/2;let t=0,e=0,seg=0;
+      const C={core:'#7df9ff',ring:'#1ec8ff',dim:'rgba(125,249,255,'};
+      function ring(r,lw,a,from,to,col){ctx.beginPath();ctx.arc(c,c,r,from,to);ctx.lineWidth=lw;ctx.strokeStyle=col;
+        ctx.globalAlpha=a;ctx.stroke();ctx.globalAlpha=1;}
+      function f(){
+        ctx.clearRect(0,0,size,size);t+=0.016;e*=0.94;seg+=0.5;
+        const energy=0.35+e*0.65, R=size*0.46;
+
+        // outer tick ring — fixed bezel with graduated marks
+        const ticks=48;
+        for(let i=0;i<ticks;i++){const ang=i/ticks*Math.PI*2;const big=i%4===0;
+          const r1=R, r2=R-(big?size*0.06:size*0.03);
+          ctx.beginPath();ctx.moveTo(c+Math.cos(ang)*r1,c+Math.sin(ang)*r1);
+          ctx.lineTo(c+Math.cos(ang)*r2,c+Math.sin(ang)*r2);
+          ctx.strokeStyle=C.dim+(big?0.55:0.22)+')';ctx.lineWidth=big?size*0.012:size*0.008;ctx.stroke();}
+
+        // slow counter-rotating dashed arc (segmented)
+        ctx.save();ctx.translate(c,c);ctx.rotate(-t*0.6);
+        for(let i=0;i<6;i++){const a0=i/6*Math.PI*2;ctx.beginPath();
+          ctx.arc(0,0,R-size*0.10,a0,a0+Math.PI/5);ctx.lineWidth=size*0.018;
+          ctx.strokeStyle=C.dim+'0.7)';ctx.stroke();}
+        ctx.restore();
+
+        // faster inner ring with a bright leading arc
+        ctx.save();ctx.translate(c,c);ctx.rotate(t*1.4);
+        ring(R-size*0.20,size*0.02,0.3,0,Math.PI*2,C.ring);
+        ctx.beginPath();ctx.arc(0,0,R-size*0.20,0,Math.PI*0.7);ctx.lineWidth=size*0.03;
+        ctx.strokeStyle=C.ring;ctx.shadowColor=C.ring;ctx.shadowBlur=size*0.10;ctx.stroke();ctx.shadowBlur=0;
+        // leading dot
+        ctx.beginPath();ctx.arc(R-size*0.20,0,size*0.022,0,7);ctx.fillStyle=C.core;ctx.fill();
+        ctx.restore();
+
+        // radar sweep
+        ctx.save();ctx.translate(c,c);ctx.rotate(t*2.0);
+        const sw=ctx.createLinearGradient(0,0,R-size*0.20,0);
+        sw.addColorStop(0,'rgba(125,249,255,0.0)');sw.addColorStop(1,'rgba(125,249,255,'+(0.25*energy)+')');
+        ctx.fillStyle=sw;ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R-size*0.20,-0.5,0);ctx.closePath();ctx.fill();
+        ctx.restore();
+
+        // pulsing core bloom
+        const cr=size*0.11*(1+e*0.5);
+        const g=ctx.createRadialGradient(c,c,0,c,c,size*0.30);
+        g.addColorStop(0,'rgba(180,245,255,'+(0.55+e*0.45)+')');
+        g.addColorStop(0.4,'rgba(30,200,255,'+(0.32*energy)+')');
+        g.addColorStop(1,'rgba(0,90,160,0)');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(c,c,size*0.30,0,7);ctx.fill();
+        ctx.beginPath();ctx.arc(c,c,cr,0,7);ctx.fillStyle=C.core;
+        ctx.shadowColor=C.core;ctx.shadowBlur=size*0.16*energy;ctx.fill();ctx.shadowBlur=0;
+
         requestAnimationFrame(f);}f();
-      return{pulse(){e=Math.min(1,e+0.9);}};}
-    const brandOrb=makeOrb('brand-orb',72,false),miniOrb=makeOrb('mini-orb',52,false),avatar=makeOrb('avatar-canvas',260,true);
+      return{pulse(){e=Math.min(1.4,e+0.9);}};}
+    const brandOrb=makeOrb('brand-orb',72),miniOrb=makeOrb('mini-orb',52),avatar=makeOrb('avatar-canvas',260);
     function pulseAll(){brandOrb.pulse();miniOrb.pulse();avatar.pulse();}
 
     // ---------- gauges ----------
